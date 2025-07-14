@@ -73,6 +73,27 @@ export interface Task {
     approvedAt: Date
     notes?: string
   }
+
+  // Supervisor Assessment
+  supervisorAssessment?: {
+    assessedBy: string
+    assessedAt: Date
+    assessedWorker: string // The team member being assessed
+    questions: {
+      onTimeAndReady: boolean | null // Were they on time and ready to work?
+      completedTasks: boolean | null // Did they complete all assigned tasks?
+      majorSnags: boolean | null // Were there any major snags or errors in their work?
+      safetyProtocols: boolean | null // Did they follow all safety protocols?
+      communication: boolean | null // Did they communicate effectively with the team or supervisor?
+      initiative: boolean | null // Did they show initiative in solving problems?
+      workAreaClean: boolean | null // Was their work area kept clean and organised?
+      toolsProper: boolean | null // Did they use tools and equipment properly?
+      collaboration: boolean | null // Did they collaborate well with other team members?
+      qualityStandards: boolean | null // Did their work meet project specifications and quality standards?
+    }
+    overallRating: "excellent" | "good" | "satisfactory" | "needs-improvement" | null
+    additionalNotes?: string
+  }
   
   // Mobile Checklist
   checklist?: {

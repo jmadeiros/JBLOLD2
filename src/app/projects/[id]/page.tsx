@@ -81,8 +81,8 @@ interface TeamMember {
 const allProjects: Project[] = [
   {
     id: "1",
-    name: "Downtown Office Tower",
-    location: "123 Main St, Metropolis",
+    name: "London Office Tower",
+    location: "45 Canary Wharf, London",
     description: "Construction of a 40-story commercial office building with retail space.",
     status: "In Progress",
     priority: "high",
@@ -103,11 +103,11 @@ const allProjects: Project[] = [
   },
   {
     id: "2",
-    name: "Greenwood Residential Complex",
-    location: "456 Oak Ave, Suburbia",
+    name: "Manchester Residential Complex",
+    location: "78 Victoria Street, Manchester",
     description: "Development of a 150-unit residential complex with community amenities.",
     status: "In Progress",
-    priority: "high", 
+    priority: "high",
     progress: 65,
     dueDate: "Dec 1, 2025",
     teamMembers: 18,
@@ -125,8 +125,8 @@ const allProjects: Project[] = [
   },
   {
     id: "3",
-    name: "Harbor View Shopping Center",
-    location: "789 Coastal Blvd, Seaside",
+    name: "Bristol Shopping Centre",
+    location: "34 Cabot Circus, Bristol",
     description: "Renovation and expansion of existing retail complex.",
     status: "Pre-construction",
     priority: "medium",
@@ -147,16 +147,88 @@ const allProjects: Project[] = [
   }
 ]
 
-// Team members data
+// Team members data - All male construction specialists
 const allTeamMembers: TeamMember[] = [
-  { id: "1", name: "David Chen", role: "Project Manager", department: "Management", status: "active", color: "bg-blue-500" },
-  { id: "2", name: "Carlos Ramirez", role: "Site Supervisor", department: "Site Crew", status: "active", color: "bg-green-500" },
-  { id: "3", name: "Maria Garcia", role: "Lead Electrician", department: "Trades", status: "active", color: "bg-yellow-500" },
-  { id: "4", name: "Frank Miller", role: "HVAC Specialist", department: "Trades", status: "busy", color: "bg-purple-500" },
-  { id: "5", name: "Sarah Jenkins", role: "Structural Engineer", department: "Engineering", status: "active", color: "bg-red-500" },
-  { id: "6", name: "Mike Johnson", role: "Plumbing Foreman", department: "Trades", status: "active", color: "bg-indigo-500" },
-  { id: "7", name: "Lisa Wong", role: "Safety Coordinator", department: "Site Crew", status: "active", color: "bg-pink-500" },
-  { id: "8", name: "Tom Wilson", role: "Equipment Operator", department: "Site Crew", status: "away", color: "bg-gray-500" }
+  { 
+    id: "1", 
+    name: "David Martinez", 
+    role: "Site Supervisor", 
+    department: "Management", 
+    status: "active", 
+    color: "bg-blue-500" 
+  },
+  { 
+    id: "2", 
+    name: "Carlos Rodriguez", 
+    role: "Master Electrician", 
+    department: "Trades", 
+    status: "active", 
+    color: "bg-yellow-500" 
+  },
+  { 
+    id: "3", 
+    name: "Mike Thompson", 
+    role: "Lead Plumber", 
+    department: "Trades", 
+    status: "active", 
+    color: "bg-indigo-500" 
+  },
+  { 
+    id: "4", 
+    name: "Tony Ricci", 
+    role: "HVAC Technician", 
+    department: "Trades", 
+    status: "busy", 
+    color: "bg-purple-500" 
+  },
+  { 
+    id: "5", 
+    name: "Brad Johnson", 
+    role: "Concrete Specialist", 
+    department: "Trades", 
+    status: "active", 
+    color: "bg-gray-600" 
+  },
+  { 
+    id: "6", 
+    name: "Steve Wilson", 
+    role: "Heavy Equipment Operator", 
+    department: "Site Crew", 
+    status: "active", 
+    color: "bg-orange-500" 
+  },
+  { 
+    id: "7", 
+    name: "Jake Sullivan", 
+    role: "Carpenter/Framer", 
+    department: "Trades", 
+    status: "active", 
+    color: "bg-green-600" 
+  },
+  { 
+    id: "8", 
+    name: "Marcus Davis", 
+    role: "Safety Inspector", 
+    department: "Site Crew", 
+    status: "active", 
+    color: "bg-red-500" 
+  },
+  { 
+    id: "9", 
+    name: "Rico Fernandez", 
+    role: "Welder/Ironworker", 
+    department: "Trades", 
+    status: "away", 
+    color: "bg-slate-600" 
+  },
+  { 
+    id: "10", 
+    name: "Danny Walsh", 
+    role: "Drywall Specialist", 
+    department: "Trades", 
+    status: "active", 
+    color: "bg-cyan-500" 
+  }
 ]
 
 // Mock tasks for project
@@ -170,12 +242,12 @@ const allTasks: Task[] = [
     status: "in-progress",
     startDate: new Date(2025, 0, 6), // Monday
     dueDate: new Date(2025, 0, 8), // Wednesday
-    assignee: "Carlos Ramirez",
+    assignee: "Brad Johnson", // Concrete specialist
     tags: ["structural", "concrete"],
     createdAt: new Date(2024, 11, 20),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Structural"
   },
   {
@@ -187,12 +259,12 @@ const allTasks: Task[] = [
     status: "done",
     startDate: new Date(2025, 0, 6), // Monday
     dueDate: new Date(2025, 0, 6), // Monday
-    assignee: "Lisa Wong",
+    assignee: "Marcus Davis", // Safety inspector
     tags: ["safety"],
     createdAt: new Date(2024, 11, 20),
     updatedAt: new Date(2025, 0, 6),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Safety"
   },
   {
@@ -204,12 +276,12 @@ const allTasks: Task[] = [
     status: "in-progress",
     startDate: new Date(2025, 0, 6), // Monday
     dueDate: new Date(2025, 0, 6), // Monday
-    assignee: "Tom Wilson",
+    assignee: "Steve Wilson", // Equipment operator
     tags: ["equipment", "safety"],
     createdAt: new Date(2024, 11, 20),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Site Work"
   },
   {
@@ -221,12 +293,12 @@ const allTasks: Task[] = [
     status: "done",
     startDate: new Date(2025, 0, 6), // Monday
     dueDate: new Date(2025, 0, 7), // Tuesday
-    assignee: "Mike Johnson",
+    assignee: "Mike Thompson", // Lead plumber
     tags: ["plumbing"],
     createdAt: new Date(2024, 11, 18),
     updatedAt: new Date(2025, 0, 7),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Plumbing"
   },
   {
@@ -238,12 +310,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 7), // Tuesday
     dueDate: new Date(2025, 0, 8), // Wednesday
-    assignee: "Carlos Ramirez",
+    assignee: undefined, // Supervisor needs to assign
     tags: ["structural", "rebar"],
     createdAt: new Date(2024, 11, 21),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Structural"
   },
   {
@@ -255,12 +327,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 7), // Tuesday
     dueDate: new Date(2025, 0, 7), // Tuesday
-    assignee: "David Chen",
+    assignee: "David Martinez", // Supervisor will handle this
     tags: ["procurement", "delivery"],
     createdAt: new Date(2024, 11, 21),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Procurement"
   },
   {
@@ -272,12 +344,12 @@ const allTasks: Task[] = [
     status: "in-progress",
     startDate: new Date(2025, 0, 7), // Tuesday
     dueDate: new Date(2025, 0, 9), // Thursday
-    assignee: "Maria Garcia",
+    assignee: "Carlos Rodriguez", // Already assigned electrician
     tags: ["electrical", "panels"],
     createdAt: new Date(2024, 11, 21),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Electrical"
   },
   {
@@ -289,12 +361,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 8), // Wednesday
     dueDate: new Date(2025, 0, 10), // Friday
-    assignee: "Maria Garcia",
+    assignee: undefined, // Supervisor needs to assign electrician
     tags: ["electrical"],
     createdAt: new Date(2024, 11, 21),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Electrical"
   },
   {
@@ -306,12 +378,12 @@ const allTasks: Task[] = [
     status: "review",
     startDate: new Date(2025, 0, 8), // Wednesday
     dueDate: new Date(2025, 0, 8), // Wednesday
-    assignee: "Sarah Jenkins",
+    assignee: "Brad Johnson", // Concrete specialist assigned
     tags: ["quality", "testing"],
     createdAt: new Date(2024, 11, 22),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Structural"
   },
   {
@@ -323,12 +395,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 8), // Wednesday
     dueDate: new Date(2025, 0, 8), // Wednesday
-    assignee: "Tom Wilson",
+    assignee: undefined, // Supervisor needs to assign crew
     tags: ["cleanup"],
     createdAt: new Date(2024, 11, 22),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Site Work"
   },
   {
@@ -340,12 +412,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 9), // Thursday
     dueDate: new Date(2025, 0, 11), // Saturday
-    assignee: "Frank Miller",
+    assignee: undefined, // Need to assign HVAC tech
     tags: ["hvac"],
     createdAt: new Date(2024, 11, 22),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "HVAC"
   },
   {
@@ -357,12 +429,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 9), // Thursday
     dueDate: new Date(2025, 0, 9), // Thursday
-    assignee: "Lisa Wong",
+    assignee: "Marcus Davis", // Safety inspector assigned
     tags: ["safety", "fire"],
     createdAt: new Date(2024, 11, 22),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Safety"
   },
   {
@@ -374,12 +446,12 @@ const allTasks: Task[] = [
     status: "review",
     startDate: new Date(2025, 0, 9), // Thursday
     dueDate: new Date(2025, 0, 9), // Thursday
-    assignee: "Mike Johnson",
+    assignee: "Mike Thompson", // Lead plumber handles inspection
     tags: ["plumbing", "inspection"],
     createdAt: new Date(2024, 11, 22),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Plumbing"
   },
   {
@@ -391,12 +463,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 10), // Friday
     dueDate: new Date(2025, 0, 12), // Sunday
-    assignee: "Carlos Ramirez",
+    assignee: undefined, // Need to assign drywall specialist
     tags: ["drywall", "finishing"],
     createdAt: new Date(2024, 11, 23),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Finishes"
   },
   {
@@ -408,12 +480,12 @@ const allTasks: Task[] = [
     status: "in-progress",
     startDate: new Date(2025, 0, 10), // Friday
     dueDate: new Date(2025, 0, 10), // Friday
-    assignee: "David Chen",
+    assignee: "David Martinez", // Supervisor handles reports
     tags: ["reporting", "management"],
     createdAt: new Date(2024, 11, 23),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Site Work"
   },
   {
@@ -425,12 +497,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 10), // Friday
     dueDate: new Date(2025, 0, 10), // Friday
-    assignee: "Tom Wilson",
+    assignee: undefined, // Need to assign equipment operator
     tags: ["maintenance", "tools"],
     createdAt: new Date(2024, 11, 23),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Site Work"
   },
   {
@@ -442,12 +514,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 11), // Saturday
     dueDate: new Date(2025, 0, 11), // Saturday
-    assignee: "David Chen",
+    assignee: undefined, // Supervisor to assign
     tags: ["inventory", "materials"],
     createdAt: new Date(2024, 11, 23),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Procurement"
   },
   {
@@ -459,12 +531,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 11), // Saturday
     dueDate: new Date(2025, 0, 11), // Saturday
-    assignee: "Lisa Wong",
+    assignee: undefined, // Need to assign safety coordinator
     tags: ["safety", "drill"],
     createdAt: new Date(2024, 11, 23),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Safety"
   },
   {
@@ -476,12 +548,12 @@ const allTasks: Task[] = [
     status: "todo",
     startDate: new Date(2025, 0, 12), // Sunday
     dueDate: new Date(2025, 0, 12), // Sunday
-    assignee: "David Chen",
+    assignee: undefined, // Supervisor to assign
     tags: ["security"],
     createdAt: new Date(2024, 11, 23),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     category: "Site Work"
   }
 ]
@@ -494,6 +566,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false)
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
   const [draggedMember, setDraggedMember] = useState<TeamMember | null>(null)
+  const [dragOverTask, setDragOverTask] = useState<string | null>(null)
   const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>("all")
   
   // Task creation form state
@@ -512,9 +585,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const project = resolvedParams ? allProjects.find(p => p.id === resolvedParams.id) : null
 
-  // Generate week days (Monday to Sunday)
+  // Generate week days (Monday to Friday only)
   const weekDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => addDays(currentWeek, i))
+    return Array.from({ length: 5 }, (_, i) => addDays(currentWeek, i))
   }, [currentWeek])
 
   // Filter tasks for current project and week
@@ -600,16 +673,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const handleDragStart = (e: React.DragEvent, member: TeamMember) => {
     setDraggedMember(member)
-    e.dataTransfer.effectAllowed = "move"
+    setDragOverTask(null) // Clear any previous drag state
+    e.dataTransfer.effectAllowed = "copy"
+  }
+
+  const handleDragEnd = () => {
+    setDraggedMember(null)
+    setDragOverTask(null)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = "move"
+    setDragOverTask(null) // Clear task hover when dragging over calendar day
   }
 
   const handleDrop = (e: React.DragEvent, day: Date) => {
     e.preventDefault()
+    setDragOverTask(null) // Clear any task hover state
     if (draggedMember && project) {
       // Create a new task assigned to the dropped member for this day
       setNewTaskTitle(`New Task for ${draggedMember.name}`)
@@ -619,6 +700,57 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       setIsCreateTaskOpen(true)
     }
     setDraggedMember(null)
+  }
+
+  const handleTaskDragOver = (e: React.DragEvent, taskId: string) => {
+    e.preventDefault()
+    e.stopPropagation() // Prevent the day drag over handler from firing
+    e.dataTransfer.dropEffect = "copy" // Different effect for task assignment
+    setDragOverTask(taskId)
+  }
+
+  const handleTaskDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOverTask(null)
+  }
+
+  const handleTaskDrop = (e: React.DragEvent, task: Task) => {
+    e.preventDefault()
+    e.stopPropagation() // Prevent the day drop handler from firing
+    setDragOverTask(null)
+    
+    if (draggedMember) {
+      const currentAssignee = task.assignee || ""
+      const assigneeNames = currentAssignee.split(',').map(name => name.trim()).filter(Boolean)
+      
+      // Check if the member is already assigned to avoid duplicates
+      if (assigneeNames.includes(draggedMember.name)) {
+        console.log(`ℹ️ ${draggedMember.name} is already assigned to "${task.title}"`)
+        setDraggedMember(null)
+        return
+      }
+
+      // Add the new member to the task
+      const newAssignee = currentAssignee 
+        ? `${currentAssignee}, ${draggedMember.name}`
+        : draggedMember.name
+
+      // Create updated task with new assignee
+      const updatedTask: Task = {
+        ...task,
+        assignee: newAssignee,
+        updatedAt: new Date()
+      }
+
+      // Update the task state properly
+      handleUpdateTask(updatedTask)
+      
+      // Clear drag state
+      setDraggedMember(null)
+      
+      // Show success feedback
+      console.log(`✅ Assigned ${draggedMember.name} to task "${task.title}"`)
+    }
   }
 
   if (!resolvedParams) {
@@ -653,7 +785,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-2">
             <Link href="/projects">
               <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" />
                 Back to Projects
               </Button>
             </Link>
@@ -745,20 +877,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
+        <Card>
+          <CardHeader>
                 <CardTitle>Trades Involved</CardTitle>
-              </CardHeader>
+          </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
                   {project.trades.map((trade) => (
                     <Badge key={trade} variant="outline">{trade}</Badge>
                   ))}
-                </div>
+            </div>
               </CardContent>
             </Card>
-          </div>
-        </div>
+            </div>
+            </div>
 
         {/* Calendar and Task Management */}
         <div className="space-y-6">
@@ -771,7 +903,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm font-medium min-w-[200px] text-center">
-                  {format(currentWeek, "MMM d")} - {format(addDays(currentWeek, 6), "MMM d, yyyy")}
+                  {format(currentWeek, "MMM d")} - {format(addDays(currentWeek, 4), "MMM d, yyyy")} (Mon-Fri)
                 </span>
                 <Button variant="outline" size="sm" onClick={() => navigateWeek("next")}>
                   <ChevronRight className="h-4 w-4" />
@@ -797,148 +929,217 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
 
-                     {/* Calendar Grid */}
-           <Card>
-             <CardContent className="p-0">
-               {/* Header Row - Days */}
-               <div className="grid grid-cols-7 gap-0 border-b">
-                 {weekDays.map((day) => (
-                   <div key={day.toString()} className="p-4 border-r text-center bg-muted">
-                     <div className="font-medium">{format(day, "EEE")}</div>
-                     <div className="text-sm text-muted-foreground">{format(day, "MMM d")}</div>
-                   </div>
-                 ))}
-               </div>
-
-               {/* Calendar Days Grid */}
-               <div className="grid grid-cols-7 gap-0">
-                 {weekDays.map((day, dayIndex) => {
-                   // Get all tasks for this day (from all team members)
-                   const dayTasks = projectTasks.filter(task => {
-                     return task.startDate && task.dueDate && 
-                            day >= task.startDate && day <= task.dueDate
-                   })
-
-                   // Filter by selected member if not "all"
-                   const filteredDayTasks = selectedMemberFilter === "all" 
-                     ? dayTasks 
-                     : dayTasks.filter(task => task.assignee === selectedMemberFilter)
-
-                   return (
-                     <div 
-                       key={dayIndex} 
-                       className="p-3 border-r border-b min-h-[200px] bg-gray-50/30 hover:bg-gray-100/50 transition-colors"
-                       onDragOver={handleDragOver}
-                       onDrop={(e) => handleDrop(e, day)}
-                     >
-                       <div className="space-y-2">
-                         {filteredDayTasks.map(task => {
-                           const assignedMember = allTeamMembers.find(m => m.name === task.assignee)
-                           
-                           return (
-                             <div
-                               key={task.id}
-                               className="p-2 rounded-lg text-xs bg-white border shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                               onClick={() => handleTaskClick(task)}
-                             >
-                               <div className="font-medium truncate mb-1">{task.title}</div>
-                               
-                               {/* Assignee Info */}
-                               {assignedMember && (
-                                 <div className="flex items-center gap-1 mb-1">
-                                   <div className={`w-2 h-2 rounded-full ${assignedMember.color}`}></div>
-                                   <span className="text-xs text-muted-foreground truncate">
-                                     {assignedMember.name}
-                                   </span>
-                                 </div>
-                               )}
-
-                               {/* Status and Priority Badges */}
-                               <div className="flex items-center gap-1 flex-wrap">
-                                 <Badge className={`text-xs px-1 py-0 ${getStatusColor(task.status)}`}>
-                                   {task.status}
-                                 </Badge>
-                                 <Badge className={`text-xs px-1 py-0 ${getPriorityColor(task.priority)}`}>
-                                   {task.priority}
-                                 </Badge>
-                                 {task.category && (
-                                   <Badge variant="outline" className="text-xs px-1 py-0">
-                                     {task.category}
-                                   </Badge>
-                                 )}
-                               </div>
-                             </div>
-                           )
-                         })}
-                         
-                         {/* Drop Zone Message */}
-                         {filteredDayTasks.length === 0 && (
-                           <div className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
-                             <div className="mb-1">Drop team member here</div>
-                             <div>to create task</div>
-                           </div>
-                         )}
-                         
-                         {/* Show additional tasks count if there are many */}
-                         {filteredDayTasks.length > 4 && (
-                           <div className="text-xs text-muted-foreground text-center py-1">
-                             +{filteredDayTasks.length - 4} more tasks
-                           </div>
-                         )}
-                       </div>
-                     </div>
-                   )
-                 })}
-               </div>
-             </CardContent>
-           </Card>
-
-          {/* Available Team Members for Drag */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                Available Team Members
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {allTeamMembers.map(member => (
-                  <div
-                    key={member.id}
-                    className="flex items-center gap-2 p-2 border rounded-lg cursor-grab hover:bg-muted/50 bg-white"
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, member)}
-                  >
-                    <div className={`w-3 h-3 rounded-full ${member.color}`}></div>
-                    <span className="text-sm font-medium">{member.name}</span>
-                    <Badge 
-                      className={`text-xs ${
-                        member.status === "active" ? "bg-green-100 text-green-800" :
-                        member.status === "busy" ? "bg-red-100 text-red-800" :
-                        "bg-yellow-100 text-yellow-800"
-                      }`}
-                    >
-                      {member.status}
-                    </Badge>
-                                         <GripVertical className="h-3 w-3 text-muted-foreground" />
+          {/* Calendar and Team Members Side by Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Calendar Grid - Takes up 3/4 of the width */}
+            <div className="lg:col-span-3">
+              <Card>
+                <CardContent className="p-0">
+                  {/* Header Row - Days */}
+                  <div className="grid grid-cols-5 gap-0 border-b">
+                    {weekDays.map((day) => (
+                      <div key={day.toString()} className="p-4 border-r text-center bg-muted">
+                        <div className="font-medium">{format(day, "EEE")}</div>
+                        <div className="text-sm text-muted-foreground">{format(day, "MMM d")}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+
+                  {/* Calendar Days Grid */}
+                  <div className="grid grid-cols-5 gap-0">
+                    {weekDays.map((day, dayIndex) => {
+                      // Get all tasks for this day (from all team members)
+                      const dayTasks = projectTasks.filter(task => {
+                        return task.startDate && task.dueDate && 
+                               day >= task.startDate && day <= task.dueDate
+                      })
+
+                      // Filter by selected member if not "all"
+                      const filteredDayTasks = selectedMemberFilter === "all" 
+                        ? dayTasks 
+                        : dayTasks.filter(task => task.assignee === selectedMemberFilter)
+
+                      return (
+                        <div 
+                          key={dayIndex} 
+                          className="p-3 border-r border-b min-h-[300px] bg-gray-50/30 hover:bg-gray-100/50 transition-colors"
+                          onDragOver={handleDragOver}
+                          onDrop={(e) => handleDrop(e, day)}
+                        >
+                          <div className="space-y-2">
+                            {filteredDayTasks.map(task => {
+                              const assignedMember = allTeamMembers.find(m => m.name === task.assignee)
+                              
+                              return (
+                                <div
+                                  key={task.id}
+                                  className={`p-3 rounded-lg bg-white border shadow-sm cursor-pointer hover:shadow-md transition-shadow relative ${
+                                    dragOverTask === task.id ? 'border-blue-500 bg-blue-50 border-2' : 'hover:bg-blue-50'
+                                  }`}
+                                  onClick={() => handleTaskClick(task)}
+                                  onDragOver={(e) => handleTaskDragOver(e, task.id)}
+                                  onDragLeave={handleTaskDragLeave}
+                                  onDrop={(e) => handleTaskDrop(e, task)}
+                                >
+                                  {/* Header with Title and Priority */}
+                                  <div className="flex items-start justify-between mb-2">
+                                    <h4 className="font-semibold text-sm leading-tight">{task.title}</h4>
+                                    <Badge className={`text-xs px-2 py-0.5 ml-2 flex-shrink-0 ${
+                                      task.priority === "high" ? "bg-red-100 text-red-800" :
+                                      task.priority === "medium" ? "bg-yellow-100 text-yellow-800" :
+                                      "bg-green-100 text-green-800"
+                                    }`}>
+                                      {task.priority.toUpperCase()}
+                                    </Badge>
+                                  </div>
+
+                                  {/* Description */}
+                                  {task.description && (
+                                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                                      {task.description}
+                                    </p>
+                                  )}
+
+                                  {/* Tags */}
+                                  {task.tags && task.tags.length > 0 && (
+                                    <div className="flex gap-1 mb-2 flex-wrap">
+                                      {task.tags.slice(0, 3).map(tag => (
+                                        <Badge key={tag} variant="outline" className="text-xs px-1 py-0">
+                                          {tag}
+                                        </Badge>
+                                      ))}
+                                      {task.tags.length > 3 && (
+                                        <span className="text-xs text-muted-foreground">+{task.tags.length - 3}</span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Bottom Row: Assignee only */}
+                                  <div className="flex items-center gap-1">
+                                    <Users className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground truncate">
+                                      {task.assignee || "Unassigned"}
+                                    </span>
+                                  </div>
+
+                                  {/* Drag overlay indicator */}
+                                  {dragOverTask === task.id && draggedMember && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-blue-100/90 rounded-lg border-2 border-blue-400">
+                                      <div className="text-xs font-medium text-blue-800 text-center px-2">
+                                        {task.assignee && task.assignee.split(',').map(name => name.trim()).includes(draggedMember.name) 
+                                          ? `${draggedMember.name} already assigned`
+                                          : `Add ${draggedMember.name} to task`
+                                        }
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                            
+                            {/* Drop Zone Message */}
+                            {filteredDayTasks.length === 0 && (
+                              <div className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+                                <div className="mb-1">Drop team member here</div>
+                                <div>to create task</div>
+                              </div>
+                            )}
+                            
+                            {/* Show additional tasks count if there are many */}
+                            {filteredDayTasks.length > 4 && (
+                              <div className="text-xs text-muted-foreground text-center py-1">
+                                +{filteredDayTasks.length - 4} more tasks
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+            </div>
+          </CardContent>
+        </Card>
+            </div>
+
+            {/* Team Members Sidebar - Takes up 1/4 of the width */}
+            <div className="lg:col-span-1">
+              <Card className="sticky top-4">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    Construction Crew
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Drag team members onto calendar days to assign tasks.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                    {allTeamMembers.map(member => (
+                                              <div
+                          key={member.id}
+                          className="flex items-start gap-2 p-2 border rounded-lg cursor-grab hover:bg-muted/50 bg-white shadow-sm transition-all hover:shadow-md"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, member)}
+                          onDragEnd={handleDragEnd}
+                        >
+                        <div className={`w-3 h-3 rounded-full ${member.color} mt-1 flex-shrink-0`}></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="text-xs font-semibold text-gray-900 truncate">{member.name}</span>
+                            <Badge 
+                              className={`text-xs px-1 py-0 ${
+                                member.status === "active" ? "bg-green-100 text-green-800" :
+                                member.status === "busy" ? "bg-red-100 text-red-800" :
+                                "bg-yellow-100 text-yellow-800"
+                              }`}
+                            >
+                              {member.status === "active" ? "A" : member.status === "busy" ? "B" : "O"}
+                            </Badge>
+                          </div>
+                          <div className="text-xs font-medium text-blue-700 mb-1 truncate">{member.role}</div>
+                          <Badge variant="outline" className="text-xs px-1 py-0">
+                            {member.department}
+                          </Badge>
+                        </div>
+                        <GripVertical className="h-3 w-3 text-muted-foreground mt-1 flex-shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Compact Legend */}
+                  <div className="mt-3 pt-2 border-t">
+                    <h4 className="text-xs font-medium mb-1">Status</h4>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>A - Active</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span>B - Busy</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        <span>O - Off-site</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
 
              {/* Task Dialog */}
-       <TaskDialog
+      <TaskDialog
          task={selectedTask}
          isOpen={isTaskDialogOpen}
          onClose={() => {
            setIsTaskDialogOpen(false)
            setSelectedTask(null)
          }}
-         onSave={(taskData) => {
+        onSave={(taskData) => {
            if (selectedTask) {
              handleUpdateTask({
                ...selectedTask,

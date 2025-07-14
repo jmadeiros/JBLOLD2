@@ -45,7 +45,7 @@ const sampleCVCTasks: Task[] = [
     createdAt: new Date(2024, 11, 20),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     cvc: {
       estimatedContributionValue: 8500,
       costs: {
@@ -77,7 +77,7 @@ const sampleCVCTasks: Task[] = [
     createdAt: new Date(2024, 11, 22),
     updatedAt: new Date(2024, 11, 22),
     projectId: "2",
-    projectName: "Greenwood Residential Complex",
+    projectName: "Manchester Residential Complex",
     cvc: {
       estimatedContributionValue: 4500,
       costs: {
@@ -109,7 +109,7 @@ const sampleCVCTasks: Task[] = [
     createdAt: new Date(2024, 11, 28),
     updatedAt: new Date(2024, 11, 29),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     cvc: {
       estimatedContributionValue: 12000,
       costs: {

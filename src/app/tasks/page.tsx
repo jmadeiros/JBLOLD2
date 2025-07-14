@@ -44,7 +44,7 @@ const initialTasks: Task[] = [
     createdAt: new Date(2024, 11, 20),
     updatedAt: new Date(2024, 11, 25),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     cvc: {
       estimatedContributionValue: 8500,
       costs: {
@@ -76,7 +76,7 @@ const initialTasks: Task[] = [
     createdAt: new Date(2024, 11, 22),
     updatedAt: new Date(2024, 11, 22),
     projectId: "2",
-    projectName: "Greenwood Residential Complex",
+    projectName: "Manchester Residential Complex",
     cvc: {
       estimatedContributionValue: 4500,
       costs: {
@@ -108,7 +108,7 @@ const initialTasks: Task[] = [
     createdAt: new Date(2024, 11, 15),
     updatedAt: new Date(2024, 11, 29),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     cvc: {
       estimatedContributionValue: 800,
       costs: {
@@ -140,7 +140,7 @@ const initialTasks: Task[] = [
     createdAt: new Date(2024, 11, 28),
     updatedAt: new Date(2024, 11, 29),
     projectId: "1",
-    projectName: "Downtown Office Tower",
+    projectName: "London Office Tower",
     cvc: {
       estimatedContributionValue: 12000,
       costs: {
@@ -162,29 +162,30 @@ const initialTasks: Task[] = [
   {
     id: "5",
     title: "Submit Material Order for Drywall",
+    description: "Order plasterboard materials for next phase of construction.",
     completed: true,
     priority: "low",
     status: "done",
+    dueDate: new Date(2024, 11, 28), // Completed
     assignee: "David Chen",
-    tags: ["procurement"],
-    createdAt: new Date(2024, 11, 10),
-    updatedAt: new Date(2024, 11, 28),
-    dueDate: new Date(2024, 11, 29), // Completed on time
+    tags: ["procurement", "materials"],
+    createdAt: new Date(2024, 11, 20),
+    updatedAt: new Date(2024, 11, 27),
     projectId: "2",
-    projectName: "Greenwood Residential Complex",
+    projectName: "Manchester Residential Complex",
     cvc: {
-      estimatedContributionValue: 600,
+      estimatedContributionValue: 2000,
       costs: {
         labourCost: 88, // 4 hours × 22/hour
-        materialsCost: 0, // procurement task
+        materialsCost: 1500, // drywall sheets, fasteners
         equipmentCost: 0,
-        travelAccommodation: 25,
+        travelAccommodation: 50,
         subcontractorFees: 0,
         bonusesAdjustments: 0
       },
-      totalCost: 113,
-      cvcScore: 487,
-      cvcPercentage: 81.2,
+      totalCost: 1638,
+      cvcScore: 362,
+      cvcPercentage: 18.1,
       isNegative: false,
       hoursLogged: 4,
       hourlyRate: 22
@@ -192,36 +193,36 @@ const initialTasks: Task[] = [
   },
   {
     id: "6",
-    title: "Plumbing Inspection - Floor 2",
-    description: "City inspector scheduled for 10 AM.",
-    completed: true,
+    title: "Electrical Panel Installation",
+    description: "Install main electrical panels and distribution boards.",
+    completed: false,
     priority: "high",
-    status: "done",
-    assignee: "Carlos Ramirez",
-    tags: ["plumbing", "inspection"],
+    status: "todo",
+    dueDate: new Date(2025, 0, 10),
+    assignee: "Maria Garcia",
+    tags: ["electrical", "critical"],
     createdAt: new Date(2024, 11, 25),
-    updatedAt: new Date(2024, 11, 27),
-    dueDate: new Date(2024, 11, 26), // Completed late
+    updatedAt: new Date(2024, 11, 25),
     projectId: "2",
-    projectName: "Greenwood Residential Complex",
+    projectName: "Manchester Residential Complex",
     cvc: {
-      estimatedContributionValue: 1200,
+      estimatedContributionValue: 6000,
       costs: {
-        labourCost: 264, // 12 hours × 22/hour
-        materialsCost: 150, // inspection materials
-        equipmentCost: 50,
-        travelAccommodation: 40,
-        subcontractorFees: 200, // certified inspector
-        bonusesAdjustments: -50 // late completion penalty
+        labourCost: 880, // 5 days × 22/hour × 8 hours
+        materialsCost: 3200, // panels, breakers, wiring
+        equipmentCost: 300, // electrical tools
+        travelAccommodation: 100,
+        subcontractorFees: 500, // electrical inspector
+        bonusesAdjustments: 0
       },
-      totalCost: 654,
-      cvcScore: 546,
-      cvcPercentage: 45.5,
+      totalCost: 4980,
+      cvcScore: 1020,
+      cvcPercentage: 17.0,
       isNegative: false,
-      hoursLogged: 12,
+      hoursLogged: 40,
       hourlyRate: 22
     }
-  },
+  }
 ]
 
 export default function Page() {

@@ -14,13 +14,328 @@ import type { CheckedState } from "@radix-ui/react-checkbox"
 import { Badge } from "@/components/ui/badge"
 import { CalendarIcon, X, Edit, Eye } from "lucide-react"
 import { format } from "date-fns"
-import { CVCBreakdown } from "./cvc-breakdown"
 
 interface TaskDialogProps {
   task: Task | null
   isOpen: boolean
   onClose: () => void
   onSave: (task: Omit<Task, "id" | "createdAt" | "updatedAt">) => void
+}
+
+interface TaskDetailsViewProps {
+  task: Task
+  onSave: (task: Omit<Task, "id" | "createdAt" | "updatedAt">) => void
+}
+
+function TaskDetailsView({ task, onSave }: TaskDetailsViewProps) {
+  const [isAssessing, setIsAssessing] = useState(false)
+  const [assessedWorker, setAssessedWorker] = useState("")
+  const [assessment, setAssessment] = useState({
+    onTimeAndReady: null as boolean | null,
+    completedTasks: null as boolean | null,
+    majorSnags: null as boolean | null,
+    safetyProtocols: null as boolean | null,
+    communication: null as boolean | null,
+    initiative: null as boolean | null,
+    workAreaClean: null as boolean | null,
+    toolsProper: null as boolean | null,
+    collaboration: null as boolean | null,
+    qualityStandards: null as boolean | null,
+  })
+  const [overallRating, setOverallRating] = useState<"excellent" | "good" | "satisfactory" | "needs-improvement" | null>(null)
+  const [additionalNotes, setAdditionalNotes] = useState("")
+
+  const assessmentQuestions = [
+    { key: 'onTimeAndReady', question: 'Were they on time and ready to work?' },
+    { key: 'completedTasks', question: 'Did they complete all assigned tasks?' },
+    { key: 'majorSnags', question: 'Were there any major snags or errors in their work?' },
+    { key: 'safetyProtocols', question: 'Did they follow all safety protocols?' },
+    { key: 'communication', question: 'Did they communicate effectively with the team or supervisor?' },
+    { key: 'initiative', question: 'Did they show initiative in solving problems?' },
+    { key: 'workAreaClean', question: 'Was their work area kept clean and organised?' },
+    { key: 'toolsProper', question: 'Did they use tools and equipment properly?' },
+    { key: 'collaboration', question: 'Did they collaborate well with other team members?' },
+    { key: 'qualityStandards', question: 'Did their work meet project specifications and quality standards?' },
+  ]
+
+  useEffect(() => {
+    if (task.supervisorAssessment) {
+      setAssessedWorker(task.supervisorAssessment.assessedWorker)
+      setAssessment(task.supervisorAssessment.questions)
+      setOverallRating(task.supervisorAssessment.overallRating)
+      setAdditionalNotes(task.supervisorAssessment.additionalNotes || "")
+    } else if (task.assignee) {
+      setAssessedWorker(task.assignee.split(',')[0].trim()) // Default to first assignee
+    }
+  }, [task])
+
+  const handleSaveAssessment = () => {
+    const updatedTask = {
+      ...task,
+      supervisorAssessment: {
+        assessedBy: "Current Supervisor", // In real app, this would be the logged-in user
+        assessedAt: new Date(),
+        assessedWorker: assessedWorker,
+        questions: assessment,
+        overallRating: overallRating,
+        additionalNotes: additionalNotes,
+      },
+      updatedAt: new Date()
+    }
+
+    onSave(updatedTask)
+    setIsAssessing(false)
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "done": return "bg-green-100 text-green-800"
+      case "in-progress": return "bg-blue-100 text-blue-800"
+      case "review": return "bg-yellow-100 text-yellow-800"
+      default: return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "high": return "bg-red-100 text-red-800"
+      case "medium": return "bg-yellow-100 text-yellow-800"
+      case "low": return "bg-green-100 text-green-800"
+      default: return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Task Information */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Badge className={getPriorityColor(task.priority)}>
+            {task.priority.toUpperCase()}
+          </Badge>
+          <Badge className={getStatusColor(task.status)}>
+            {task.status === "in-progress" ? "In Progress" : 
+             task.status === "todo" ? "To Do" :
+             task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+          </Badge>
+        </div>
+
+        {task.description && (
+          <div>
+            <h4 className="font-medium mb-2">Description</h4>
+            <p className="text-sm text-muted-foreground">{task.description}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="font-medium">Assignee:</span>
+            <p className="text-muted-foreground">{task.assignee || "Unassigned"}</p>
+          </div>
+          <div>
+            <span className="font-medium">Due Date:</span>
+            <p className="text-muted-foreground">
+              {task.dueDate ? format(task.dueDate, "PPP") : "No due date"}
+            </p>
+          </div>
+          <div>
+            <span className="font-medium">Project:</span>
+            <p className="text-muted-foreground">{task.projectName || "No project"}</p>
+          </div>
+          <div>
+            <span className="font-medium">Category:</span>
+            <p className="text-muted-foreground">{task.category || "No category"}</p>
+          </div>
+        </div>
+
+        {task.tags && task.tags.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-2">Tags</h4>
+            <div className="flex flex-wrap gap-2">
+              {task.tags.map((tag) => (
+                <Badge key={tag} variant="outline">{tag}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Supervisor Assessment Section */}
+      {task.assignee && (task.status === "done" || task.status === "in-progress") && (
+        <div className="border-t pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Supervisor Assessment</h3>
+            {!isAssessing && !task.supervisorAssessment && (
+              <Button onClick={() => setIsAssessing(true)}>
+                Start Assessment
+              </Button>
+            )}
+            {!isAssessing && task.supervisorAssessment && (
+              <Button variant="outline" onClick={() => setIsAssessing(true)}>
+                Edit Assessment
+              </Button>
+            )}
+          </div>
+
+          {task.supervisorAssessment && !isAssessing && (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-700">Assessed Worker:</span>
+                      <Badge variant="outline" className="font-medium">{task.supervisorAssessment.assessedWorker}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-700">Assessed On:</span>
+                      <span className="text-sm text-gray-600">{format(task.supervisorAssessment.assessedAt, "PPP")}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-700">Assessed By:</span>
+                      <span className="text-sm text-gray-600">{task.supervisorAssessment.assessedBy}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-700">Overall Rating:</span>
+                      <Badge className={`text-sm font-medium ${
+                        task.supervisorAssessment.overallRating === "excellent" ? "bg-green-100 text-green-800 border-green-300" :
+                        task.supervisorAssessment.overallRating === "good" ? "bg-blue-100 text-blue-800 border-blue-300" :
+                        task.supervisorAssessment.overallRating === "satisfactory" ? "bg-yellow-100 text-yellow-800 border-yellow-300" :
+                        "bg-red-100 text-red-800 border-red-300"
+                      }`}>
+                        {task.supervisorAssessment.overallRating?.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-blue-200 pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-4">Assessment Details</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    {assessmentQuestions.map((q) => {
+                      const answer = task.supervisorAssessment!.questions[q.key as keyof typeof task.supervisorAssessment.questions]
+                      return (
+                        <div key={q.key} className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border border-gray-100">
+                          <span className="text-sm text-gray-700 flex-1">{q.question}</span>
+                          <Badge variant={answer === true ? "default" : answer === false ? "destructive" : "secondary"} 
+                                 className="ml-3 text-xs font-medium">
+                            {answer === true ? "Yes" : answer === false ? "No" : "N/A"}
+                          </Badge>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {task.supervisorAssessment.additionalNotes && (
+                  <div className="mt-6 pt-4 border-t border-blue-200">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Additional Notes</h4>
+                    <div className="bg-white rounded-lg border border-gray-100 p-4">
+                      <p className="text-sm text-gray-600 leading-relaxed">{task.supervisorAssessment.additionalNotes}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {isAssessing && (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Worker Being Assessed</label>
+                <Select value={assessedWorker} onValueChange={setAssessedWorker}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select worker" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {task.assignee?.split(',').map(worker => (
+                      <SelectItem key={worker.trim()} value={worker.trim()}>
+                        {worker.trim()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Assessment Questions</h4>
+                {assessmentQuestions.map((q) => (
+                  <div key={q.key} className="space-y-2">
+                    <label className="text-sm font-medium">{q.question}</label>
+                    <div className="flex gap-4">
+                      <Button
+                        variant={assessment[q.key as keyof typeof assessment] === true ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setAssessment(prev => ({ ...prev, [q.key]: true }))}
+                      >
+                        Yes
+                      </Button>
+                      <Button
+                        variant={assessment[q.key as keyof typeof assessment] === false ? "destructive" : "outline"}
+                        size="sm"
+                        onClick={() => setAssessment(prev => ({ ...prev, [q.key]: false }))}
+                      >
+                        No
+                      </Button>
+                      <Button
+                        variant={assessment[q.key as keyof typeof assessment] === null ? "secondary" : "outline"}
+                        size="sm"
+                        onClick={() => setAssessment(prev => ({ ...prev, [q.key]: null }))}
+                      >
+                        N/A
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Overall Rating</label>
+                <Select value={overallRating || ""} onValueChange={(value: any) => setOverallRating(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select overall rating" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="excellent">Excellent</SelectItem>
+                    <SelectItem value="good">Good</SelectItem>
+                    <SelectItem value="satisfactory">Satisfactory</SelectItem>
+                    <SelectItem value="needs-improvement">Needs Improvement</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Additional Notes (Optional)</label>
+                <Textarea
+                  value={additionalNotes}
+                  onChange={(e) => setAdditionalNotes(e.target.value)}
+                  placeholder="Add any additional notes about the worker's performance..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleSaveAssessment} disabled={!assessedWorker || !overallRating}>
+                  Save Assessment
+                </Button>
+                <Button variant="outline" onClick={() => setIsAssessing(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!task.supervisorAssessment && !isAssessing && (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No assessment completed yet.</p>
+              <p className="text-sm">Start an assessment to evaluate worker performance.</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function TaskDialog({ task, isOpen, onClose, onSave }: TaskDialogProps) {
@@ -202,10 +517,8 @@ export function TaskDialog({ task, isOpen, onClose, onSave }: TaskDialogProps) {
         </DialogHeader>
 
         {task && !isEditMode ? (
-          // View mode - show CVC breakdown
-          <div className="space-y-4">
-            <CVCBreakdown task={task} />
-          </div>
+          // View mode - show task details and assessment
+          <TaskDetailsView task={task} onSave={onSave} />
         ) : (
           // Edit mode - show edit form
           <div className="space-y-6">

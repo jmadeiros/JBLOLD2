@@ -40,8 +40,8 @@ export default function ProjectsPage() {
   const [projects] = useState<Project[]>([
     {
       id: "1",
-      name: "Downtown Office Tower",
-      location: "123 Main St, Metropolis",
+      name: "London Office Tower",
+      location: "45 Canary Wharf, London",
       description: "Construction of a 40-story commercial office building with retail space.",
       status: "In Progress",
       priority: "high",
@@ -63,8 +63,8 @@ export default function ProjectsPage() {
     },
     {
       id: "2",
-      name: "Greenwood Residential Complex",
-      location: "456 Oak Ave, Suburbia",
+      name: "Manchester Residential Complex",
+      location: "78 Victoria Street, Manchester",
       description: "Development of a 150-unit residential complex with community amenities.",
       status: "In Progress",
       priority: "high",
@@ -86,9 +86,9 @@ export default function ProjectsPage() {
     },
     {
       id: "3",
-      name: "Highway 101 Overpass",
-      location: "Highway 101 & Route 5",
-      description: "Seismic retrofitting and expansion of the existing highway overpass.",
+      name: "M25 Motorway Bridge",
+      location: "M25 Junction 15, Slough",
+      description: "Seismic retrofitting and expansion of the existing motorway bridge.",
       status: "Pre-construction",
       priority: "medium",
       progress: 10,
@@ -109,8 +109,8 @@ export default function ProjectsPage() {
     },
     {
       id: "4",
-      name: "Metropolis General Hospital Wing",
-      location: "789 Health Blvd, Metropolis",
+      name: "Birmingham General Hospital Wing",
+      location: "152 Broad Street, Birmingham",
       description: "New west wing addition to the main hospital, including surgical suites.",
       status: "Completed",
       priority: "high",
@@ -132,8 +132,8 @@ export default function ProjectsPage() {
     },
     {
       id: "5",
-      name: "Coastal Warehouse Facility",
-      location: "12 Industrial Way, Port City",
+      name: "Liverpool Warehouse Facility",
+      location: "89 Dock Road, Liverpool",
       description: "Construction of a 500,000 sq. ft. logistics and warehouse facility.",
       status: "On Hold",
       priority: "medium",

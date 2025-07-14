@@ -390,6 +390,77 @@ export default function TeamPage() {
       .toUpperCase()
   }
 
+  const getStatusColorDot = (status: string) => {
+    switch (status) {
+      case "active": return "bg-green-500"
+      case "busy": return "bg-red-500"
+      case "away": return "bg-yellow-500"
+      default: return "bg-gray-500"
+    }
+  }
+
+  const getJobDescription = (role: string) => {
+    const descriptions: { [key: string]: string } = {
+      "Site Supervisor": "Oversees daily operations, crew coordination",
+      "Project Manager": "Project oversight, client relations, scheduling",
+      "Master Electrician": "Electrical systems, panel installation, wiring",
+      "Lead Plumber": "Plumbing installation, pipe fitting, inspections", 
+      "HVAC Technician": "Heating, ventilation, air conditioning systems",
+      "Concrete Specialist": "Foundation, concrete pours, quality testing",
+      "Heavy Equipment Operator": "Excavators, cranes, heavy machinery",
+      "Carpenter/Framer": "Framing, drywall, finishing carpentry",
+      "Safety Inspector": "Safety compliance, inspections, training",
+      "Welder/Ironworker": "Structural steel, welding, metal fabrication",
+      "Drywall Specialist": "Drywall installation, taping, finishing"
+    }
+    return descriptions[role] || "Construction specialist"
+  }
+
+  // Drag and drop functionality
+  const [draggedMember, setDraggedMember] = useState<TeamMember | null>(null)
+
+  const handleDragStart = (e: React.DragEvent, member: TeamMember) => {
+    setDraggedMember(member)
+    e.dataTransfer.effectAllowed = "move"
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+  }
+
+  const handleDrop = (e: React.DragEvent, task: Task) => {
+    e.preventDefault()
+    if (draggedMember) {
+      // "Slot in" functionality - append to existing assignee rather than replace
+      const currentAssignee = task.assignee || ""
+      const newAssignee = currentAssignee 
+        ? `${currentAssignee}, ${draggedMember.name}`
+        : draggedMember.name
+
+      // In a real app, this would update the task via API
+      console.log(`Adding ${draggedMember.name} to task "${task.title}"`)
+      console.log(`Updated assignee: ${newAssignee}`)
+      
+      // Update the task in the local state (simplified for demo)
+      task.assignee = newAssignee
+      
+      setDraggedMember(null)
+      
+      // Show a success message or trigger a re-render
+      alert(`${draggedMember.name} has been added to the task "${task.title}"`)
+    }
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "high": return "bg-red-100 text-red-800"
+      case "medium": return "bg-yellow-100 text-yellow-800"
+      case "low": return "bg-green-100 text-green-800"
+      default: return "bg-gray-100 text-gray-800"
+    }
+  }
+
   const departments = [...new Set(teamMembers.map((member) => member.department))]
   const totalTasks = teamMembers.reduce((acc, member) => acc + member.activeTasks + member.completedTasks, 0)
   const activeTasks = teamMembers.reduce((acc, member) => acc + member.activeTasks, 0)
@@ -446,6 +517,96 @@ export default function TeamPage() {
           </Card>
         </div>
 
+        {/* Instructions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              Construction Crew - Drag to Assign Tasks
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Drag team members onto tasks below to add them to assignments. Team members will be added to existing assignments rather than replacing them.
+            </p>
+          </CardHeader>
+        </Card>
+
+        {/* Current Tasks - Drop Zones */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Active Tasks - Drop Team Members Here</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Drop team members onto these tasks to assign them. Multiple members can be assigned to the same task.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {allTasks.filter(task => !task.completed).slice(0, 5).map(task => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, task)}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-medium">{task.title}</h4>
+                      <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Current assignee: {task.assignee || "Unassigned - Supervisor needs to assign"}
+                    </div>
+                    {task.dueDate && (
+                      <div className="text-xs text-muted-foreground">
+                        Due: {task.dueDate.toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Drop team member here →
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Legend */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Assignment Status Legend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium mb-2">Team Member Status</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span>Active - Available for assignment</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span>Busy - Currently assigned to critical tasks</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <span>Away - Off-site or unavailable</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-2">How to Assign</h4>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <div>1. Drag a team member from below</div>
+                  <div>2. Drop onto a task above</div>
+                  <div>3. They'll be added to existing assignments</div>
+                  <div>4. Multiple members can work on same task</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Tabs defaultValue="all" className="w-full">
           <TabsList>
             <TabsTrigger value="all">All Members</TabsTrigger>
@@ -457,144 +618,88 @@ export default function TeamPage() {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {teamMembers.map((member) => (
-                <Link href={`/team/${member.id}`} key={member.id}>
-                  <Card className="hover:shadow-md transition-shadow flex flex-col h-full">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage src={member.avatar || "/placeholder.svg"} />
-                            <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <CardTitle className="text-lg">{member.name}</CardTitle>
-                            <p className="text-sm text-muted-foreground">{member.role}</p>
-                          </div>
-                        </div>
-                        {member.rank && (
-                          <Badge
-                            variant={member.rank <= 3 ? "default" : "secondary"}
-                            className="flex items-center gap-1"
-                          >
-                            <Award className="h-3 w-3" /> Rank #{member.rank}
-                          </Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4 flex-1 flex flex-col justify-end">
-                      <div className="flex items-center gap-2">
-                        <Badge className={`text-xs ${getStatusColor(member.status)}`}>{member.status}</Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {member.department}
-                        </Badge>
-                      </div>
-
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Mail className="h-4 w-4" />
-                          <span className="truncate">{member.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="h-4 w-4" />
-                          <span>{member.location}</span>
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t">
-                        <div className="flex justify-between items-center mb-1">
-                          <h4 className="text-sm font-medium flex items-center gap-1">
-                            <TrendingUp className="h-4 w-4" /> Performance
-                          </h4>
-                          <span className="font-bold text-lg">{member.performanceScore ?? "N/A"}</span>
-                        </div>
-                        <Progress value={member.performanceScore} />
-                      </div>
-
-                      {member.cvcMetrics && (
-                        <div className="pt-2 border-t">
-                          <div className="flex justify-between items-center mb-1">
-                            <h4 className="text-sm font-medium flex items-center gap-1">
-                              <Calculator className="h-4 w-4" /> CVC Performance
-                            </h4>
-                            <span className={`font-bold text-lg ${member.cvcMetrics.totalCVCValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {formatCurrency(member.cvcMetrics.totalCVCValue)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>{member.cvcMetrics.tasksWithCVC} tasks</span>
-                            <span>{formatPercentage(member.cvcMetrics.averageCVCPercentage)} avg</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-2 border-t">
-                        <div className="text-center">
-                          <div className="text-lg font-semibold text-orange-600">{member.activeTasks}</div>
-                          <div className="text-xs text-muted-foreground">Active</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-semibold text-green-600">{member.completedTasks}</div>
-                          <div className="text-xs text-muted-foreground">Completed</div>
-                        </div>
-                        {member.cvcMetrics && (
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-blue-600">{member.cvcMetrics.totalHours}h</div>
-                            <div className="text-xs text-muted-foreground">Logged</div>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                <div
+                  key={member.id}
+                  className="flex items-start gap-3 p-3 border rounded-lg cursor-grab hover:bg-muted/50 bg-white shadow-sm transition-all hover:shadow-md"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, member)}
+                >
+                  <div className={`w-4 h-4 rounded-full ${getStatusColorDot(member.status)} mt-0.5 flex-shrink-0`}></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold text-gray-900">{member.name}</span>
+                      <Badge 
+                        className={`text-xs ${
+                          member.status === "active" ? "bg-green-100 text-green-800" :
+                          member.status === "busy" ? "bg-red-100 text-red-800" :
+                          "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {member.status}
+                      </Badge>
+                    </div>
+                    <div className="text-xs font-medium text-blue-700 mb-1">{member.role}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {getJobDescription(member.role)}
+                    </div>
+                    <Badge variant="outline" className="text-xs mt-1">
+                      {member.department}
+                    </Badge>
+                  </div>
+                  <div 
+                    className="cursor-pointer hover:bg-gray-100 p-1 rounded"
+                    onClick={() => window.location.href = `/team/${member.id}`}
+                  >
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
               ))}
             </div>
           </TabsContent>
 
           {departments.map((dept) => (
             <TabsContent key={dept.toLowerCase()} value={dept.toLowerCase()} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {teamMembers
                   .filter((member) => member.department === dept)
                   .map((member) => (
-                    <Link href={`/team/${member.id}`} key={member.id}>
-                      <Card className="hover:shadow-md transition-shadow h-full">
-                        {/* Simplified card for filtered view */}
-                        <CardHeader>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12">
-                              <AvatarImage src={member.avatar || "/placeholder.svg"} />
-                              <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <CardTitle className="text-lg">{member.name}</CardTitle>
-                              <p className="text-sm text-muted-foreground">{member.role}</p>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="flex items-center gap-2">
-                            <Badge className={`text-xs ${getStatusColor(member.status)}`}>{member.status}</Badge>
-                            {member.rank && (
-                              <Badge
-                                variant={member.rank <= 3 ? "default" : "secondary"}
-                                className="flex items-center gap-1"
-                              >
-                                <Award className="h-3 w-3" /> Rank #{member.rank}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="pt-2 border-t">
-                            <div className="flex justify-between items-center mb-1">
-                              <h4 className="text-sm font-medium">Performance</h4>
-                              <span className="font-bold text-lg">{member.performanceScore ?? "N/A"}</span>
-                            </div>
-                            <Progress value={member.performanceScore} />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                    <div
+                      key={member.id}
+                      className="flex items-start gap-3 p-3 border rounded-lg cursor-grab hover:bg-muted/50 bg-white shadow-sm transition-all hover:shadow-md"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, member)}
+                    >
+                      <div className={`w-4 h-4 rounded-full ${getStatusColorDot(member.status)} mt-0.5 flex-shrink-0`}></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-gray-900">{member.name}</span>
+                          <Badge 
+                            className={`text-xs ${
+                              member.status === "active" ? "bg-green-100 text-green-800" :
+                              member.status === "busy" ? "bg-red-100 text-red-800" :
+                              "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {member.status}
+                          </Badge>
+                        </div>
+                        <div className="text-xs font-medium text-blue-700 mb-1">{member.role}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {getJobDescription(member.role)}
+                        </div>
+                        <Badge variant="outline" className="text-xs mt-1">
+                          {member.department}
+                        </Badge>
+                      </div>
+                      <div 
+                        className="cursor-pointer hover:bg-gray-100 p-1 rounded"
+                        onClick={() => window.location.href = `/team/${member.id}`}
+                      >
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
                   ))}
               </div>
             </TabsContent>
