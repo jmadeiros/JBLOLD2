@@ -1,0 +1,606 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { SidebarInset } from "@/components/ui/sidebar"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Progress } from "@/components/ui/progress"
+import { Search, Mail, MapPin, UserPlus, Award, TrendingUp, DollarSign, Calculator } from "lucide-react"
+import type { Task } from "../../../types/task"
+import { formatCurrency, formatPercentage } from "@/lib/cvc-utils"
+import Link from "next/link"
+
+// NOTE: In a real app, this data would come from an API
+const allTasks: Task[] = [
+  {
+    id: "1",
+    title: "Foundation Pouring - Sector A",
+    completed: true,
+    priority: "high",
+    status: "done",
+    dueDate: new Date(2025, 0, 5),
+    assignee: "Carlos Ramirez",
+    createdAt: new Date(2024, 11, 20),
+    updatedAt: new Date(2025, 0, 4), // On time
+    cvc: {
+      estimatedContributionValue: 8500,
+      costs: {
+        labourCost: 1760,
+        materialsCost: 2500,
+        equipmentCost: 800,
+        travelAccommodation: 150,
+        subcontractorFees: 1200,
+        bonusesAdjustments: 0
+      },
+      totalCost: 6410,
+      cvcScore: 2090,
+      cvcPercentage: 24.6,
+      isNegative: false,
+      hoursLogged: 35.5,
+      hourlyRate: 22
+    }
+  },
+  {
+    id: "2",
+    title: "Electrical Rough-in - Floor 3",
+    completed: true,
+    priority: "medium",
+    status: "done",
+    dueDate: new Date(2025, 0, 8),
+    assignee: "Maria Garcia",
+    createdAt: new Date(2024, 11, 22),
+    updatedAt: new Date(2025, 0, 9), // Late
+    cvc: {
+      estimatedContributionValue: 4500,
+      costs: {
+        labourCost: 1320,
+        materialsCost: 1800,
+        equipmentCost: 200,
+        travelAccommodation: 100,
+        subcontractorFees: 0,
+        bonusesAdjustments: 0
+      },
+      totalCost: 3420,
+      cvcScore: 1080,
+      cvcPercentage: 24.0,
+      isNegative: false,
+      hoursLogged: 28.5,
+      hourlyRate: 22
+    }
+  },
+  {
+    id: "4",
+    title: "Install HVAC units on Roof",
+    completed: true,
+    priority: "high",
+    status: "done",
+    dueDate: new Date(2024, 11, 30),
+    assignee: "Frank Miller",
+    createdAt: new Date(2024, 11, 28),
+    updatedAt: new Date(2024, 11, 30), // On time
+    cvc: {
+      estimatedContributionValue: 12000,
+      costs: {
+        labourCost: 1540,
+        materialsCost: 8500,
+        equipmentCost: 2500,
+        travelAccommodation: 200,
+        subcontractorFees: 1800,
+        bonusesAdjustments: 500
+      },
+      totalCost: 15040,
+      cvcScore: -3040,
+      cvcPercentage: -25.3,
+      isNegative: true,
+      hoursLogged: 42.0,
+      hourlyRate: 22
+    }
+  },
+  {
+    id: "5",
+    title: "Submit Material Order for Drywall",
+    completed: true,
+    priority: "low",
+    status: "done",
+    assignee: "David Chen",
+    createdAt: new Date(2024, 11, 10),
+    updatedAt: new Date(2024, 11, 28),
+    dueDate: new Date(2024, 11, 29), // On time
+    cvc: {
+      estimatedContributionValue: 600,
+      costs: {
+        labourCost: 88,
+        materialsCost: 0,
+        equipmentCost: 0,
+        travelAccommodation: 25,
+        subcontractorFees: 0,
+        bonusesAdjustments: 0
+      },
+      totalCost: 113,
+      cvcScore: 487,
+      cvcPercentage: 81.2,
+      isNegative: false,
+      hoursLogged: 4,
+      hourlyRate: 22
+    }
+  },
+  {
+    id: "6",
+    title: "Plumbing Inspection - Floor 2",
+    completed: true,
+    priority: "high",
+    status: "done",
+    assignee: "Carlos Ramirez",
+    createdAt: new Date(2024, 11, 25),
+    updatedAt: new Date(2024, 11, 27),
+    dueDate: new Date(2024, 11, 26), // Late
+    cvc: {
+      estimatedContributionValue: 1200,
+      costs: {
+        labourCost: 264,
+        materialsCost: 150,
+        equipmentCost: 50,
+        travelAccommodation: 40,
+        subcontractorFees: 200,
+        bonusesAdjustments: -50
+      },
+      totalCost: 654,
+      cvcScore: 546,
+      cvcPercentage: 45.5,
+      isNegative: false,
+      hoursLogged: 12,
+      hourlyRate: 22
+    }
+  },
+  {
+    id: "7",
+    title: "Install Windows - Floor 5",
+    completed: true,
+    priority: "medium",
+    status: "done",
+    assignee: "Maria Garcia",
+    createdAt: new Date(2024, 11, 28),
+    updatedAt: new Date(2024, 11, 28),
+    dueDate: new Date(2024, 11, 29), // On time
+    cvc: {
+      estimatedContributionValue: 3200,
+      costs: {
+        labourCost: 880,
+        materialsCost: 1500,
+        equipmentCost: 150,
+        travelAccommodation: 80,
+        subcontractorFees: 0,
+        bonusesAdjustments: 0
+      },
+      totalCost: 2610,
+      cvcScore: 590,
+      cvcPercentage: 18.4,
+      isNegative: false,
+      hoursLogged: 20,
+      hourlyRate: 22
+    }
+  },
+  {
+    id: "8",
+    title: "Site Cleanup - Sector B",
+    completed: true,
+    priority: "low",
+    status: "done",
+    assignee: "Frank Miller",
+    createdAt: new Date(2024, 11, 29),
+    updatedAt: new Date(2024, 11, 29),
+    // No due date
+    cvc: {
+      estimatedContributionValue: 800,
+      costs: {
+        labourCost: 220,
+        materialsCost: 100,
+        equipmentCost: 80,
+        travelAccommodation: 30,
+        subcontractorFees: 0,
+        bonusesAdjustments: 0
+      },
+      totalCost: 430,
+      cvcScore: 370,
+      cvcPercentage: 46.3,
+      isNegative: false,
+      hoursLogged: 10,
+      hourlyRate: 22
+    }
+  },
+]
+
+interface TeamMember {
+  id: string
+  name: string
+  email: string
+  role: string
+  department: "Management" | "Site Crew" | "Engineering" | "Trades"
+  status: "active" | "away" | "busy"
+  avatar?: string
+  phone?: string
+  location: string
+  joinDate: string
+  activeTasks: number
+  completedTasks: number
+  performanceScore?: number
+  rank?: number
+  cvcMetrics?: {
+    totalCVCValue: number
+    averageCVCPercentage: number
+    totalContribution: number
+    totalCost: number
+    totalHours: number
+    tasksWithCVC: number
+  }
+}
+
+export default function TeamPage() {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
+    {
+      id: "1",
+      name: "David Chen",
+      email: "david.chen@construction.co",
+      role: "Project Manager",
+      department: "Management",
+      status: "active",
+      phone: "+1 (555) 123-4567",
+      location: "On-site Office",
+      joinDate: "Jan 2020",
+      activeTasks: 2,
+      completedTasks: 142,
+    },
+    {
+      id: "2",
+      name: "Carlos Ramirez",
+      email: "carlos.ramirez@construction.co",
+      role: "Site Supervisor",
+      department: "Site Crew",
+      status: "busy",
+      phone: "+1 (555) 234-5678",
+      location: "Site - Sector A",
+      joinDate: "Mar 2018",
+      activeTasks: 4,
+      completedTasks: 267,
+    },
+    {
+      id: "3",
+      name: "Maria Garcia",
+      email: "maria.garcia@construction.co",
+      role: "Lead Electrician",
+      department: "Trades",
+      status: "active",
+      phone: "+1 (555) 345-6789",
+      location: "Site - Floor 3",
+      joinDate: "Jun 2021",
+      activeTasks: 3,
+      completedTasks: 128,
+    },
+    {
+      id: "4",
+      name: "Frank Miller",
+      email: "frank.miller@construction.co",
+      role: "HVAC Specialist",
+      department: "Trades",
+      status: "away",
+      phone: "+1 (555) 456-7890",
+      location: "Off-site",
+      joinDate: "Sep 2022",
+      activeTasks: 1,
+      completedTasks: 85,
+    },
+    {
+      id: "5",
+      name: "Sarah Jenkins",
+      email: "sarah.jenkins@construction.co",
+      role: "Structural Engineer",
+      department: "Engineering",
+      status: "active",
+      phone: "+1 (555) 567-8901",
+      location: "Main Office",
+      joinDate: "Nov 2019",
+      activeTasks: 2,
+      completedTasks: 95,
+    },
+  ])
+
+  useEffect(() => {
+    const calculatePerformance = (member: TeamMember): number => {
+      const memberTasks = allTasks.filter((task) => task.assignee === member.name && task.completed)
+      if (memberTasks.length === 0) return 50 // Default score for no completed tasks
+
+      const tasksWithDueDate = memberTasks.filter((task) => task.dueDate)
+      if (tasksWithDueDate.length === 0) return 75 // Higher score if no tasks had deadlines
+
+      const onTimeTasks = tasksWithDueDate.filter(
+        (task) => task.updatedAt && task.dueDate && task.updatedAt <= task.dueDate,
+      )
+
+      const onTimePercentage = (onTimeTasks.length / tasksWithDueDate.length) * 100
+
+      // Weighted score: 70% on-time completion, 30% total tasks completed (capped)
+      const completionScore = Math.min(member.completedTasks / 100, 1) * 100 // Capped at 100 tasks for this metric
+      const finalScore = onTimePercentage * 0.7 + completionScore * 0.3
+
+      return Math.round(finalScore)
+    }
+
+    const calculateCVCMetrics = (member: TeamMember) => {
+      const memberTasks = allTasks.filter((task) => task.assignee === member.name && task.cvc)
+      
+      if (memberTasks.length === 0) return undefined
+
+      const totalCVCValue = memberTasks.reduce((sum, task) => sum + (task.cvc?.cvcScore || 0), 0)
+      const totalContribution = memberTasks.reduce((sum, task) => sum + (task.cvc?.estimatedContributionValue || 0), 0)
+      const totalCost = memberTasks.reduce((sum, task) => sum + (task.cvc?.totalCost || 0), 0)
+      const totalHours = memberTasks.reduce((sum, task) => sum + (task.cvc?.hoursLogged || 0), 0)
+      const averageCVCPercentage = memberTasks.length > 0 
+        ? memberTasks.reduce((sum, task) => sum + (task.cvc?.cvcPercentage || 0), 0) / memberTasks.length 
+        : 0
+
+      return {
+        totalCVCValue,
+        averageCVCPercentage,
+        totalContribution,
+        totalCost,
+        totalHours,
+        tasksWithCVC: memberTasks.length,
+      }
+    }
+
+    const rankedMembers = teamMembers
+      .map((member) => ({
+        ...member,
+        performanceScore: calculatePerformance(member),
+        cvcMetrics: calculateCVCMetrics(member),
+      }))
+      .sort((a, b) => (b.performanceScore ?? 0) - (a.performanceScore ?? 0))
+      .map((member, index) => ({
+        ...member,
+        rank: index + 1,
+      }))
+
+    setTeamMembers(rankedMembers)
+  }, [])
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-green-100 text-green-800 border-green-200"
+      case "busy":
+        return "bg-red-100 text-red-800 border-red-200"
+      case "away":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200"
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200"
+    }
+  }
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+  }
+
+  const departments = [...new Set(teamMembers.map((member) => member.department))]
+  const totalTasks = teamMembers.reduce((acc, member) => acc + member.activeTasks + member.completedTasks, 0)
+  const activeTasks = teamMembers.reduce((acc, member) => acc + member.activeTasks, 0)
+
+  return (
+    <SidebarInset>
+      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+        <div className="flex items-center gap-2 px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <div>
+            <h1 className="font-semibold">Team</h1>
+            <p className="text-sm text-muted-foreground">{teamMembers.length} team members</p>
+          </div>
+        </div>
+        <div className="ml-auto flex items-center gap-2 px-4">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input type="search" placeholder="Search team members..." className="w-[300px] pl-8" />
+          </div>
+          <Button>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Member
+          </Button>
+        </div>
+      </header>
+
+      <div className="flex-1 p-6 space-y-6">
+        {/* Team Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-blue-600">{teamMembers.length}</div>
+              <div className="text-sm text-gray-600">Team Members</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-green-600">{departments.length}</div>
+              <div className="text-sm text-gray-600">Departments</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-orange-600">{activeTasks}</div>
+              <div className="text-sm text-gray-600">Active Tasks</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-purple-600">{totalTasks}</div>
+              <div className="text-sm text-gray-600">Total Tasks</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList>
+            <TabsTrigger value="all">All Members</TabsTrigger>
+            {departments.map((dept) => (
+              <TabsTrigger key={dept} value={dept.toLowerCase()}>
+                {dept}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="all" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {teamMembers.map((member) => (
+                <Link href={`/team/${member.id}`} key={member.id}>
+                  <Card className="hover:shadow-md transition-shadow flex flex-col h-full">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={member.avatar || "/placeholder.svg"} />
+                            <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <CardTitle className="text-lg">{member.name}</CardTitle>
+                            <p className="text-sm text-muted-foreground">{member.role}</p>
+                          </div>
+                        </div>
+                        {member.rank && (
+                          <Badge
+                            variant={member.rank <= 3 ? "default" : "secondary"}
+                            className="flex items-center gap-1"
+                          >
+                            <Award className="h-3 w-3" /> Rank #{member.rank}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4 flex-1 flex flex-col justify-end">
+                      <div className="flex items-center gap-2">
+                        <Badge className={`text-xs ${getStatusColor(member.status)}`}>{member.status}</Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {member.department}
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Mail className="h-4 w-4" />
+                          <span className="truncate">{member.email}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          <span>{member.location}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t">
+                        <div className="flex justify-between items-center mb-1">
+                          <h4 className="text-sm font-medium flex items-center gap-1">
+                            <TrendingUp className="h-4 w-4" /> Performance
+                          </h4>
+                          <span className="font-bold text-lg">{member.performanceScore ?? "N/A"}</span>
+                        </div>
+                        <Progress value={member.performanceScore} />
+                      </div>
+
+                      {member.cvcMetrics && (
+                        <div className="pt-2 border-t">
+                          <div className="flex justify-between items-center mb-1">
+                            <h4 className="text-sm font-medium flex items-center gap-1">
+                              <Calculator className="h-4 w-4" /> CVC Performance
+                            </h4>
+                            <span className={`font-bold text-lg ${member.cvcMetrics.totalCVCValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {formatCurrency(member.cvcMetrics.totalCVCValue)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>{member.cvcMetrics.tasksWithCVC} tasks</span>
+                            <span>{formatPercentage(member.cvcMetrics.averageCVCPercentage)} avg</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <div className="text-center">
+                          <div className="text-lg font-semibold text-orange-600">{member.activeTasks}</div>
+                          <div className="text-xs text-muted-foreground">Active</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-semibold text-green-600">{member.completedTasks}</div>
+                          <div className="text-xs text-muted-foreground">Completed</div>
+                        </div>
+                        {member.cvcMetrics && (
+                          <div className="text-center">
+                            <div className="text-lg font-semibold text-blue-600">{member.cvcMetrics.totalHours}h</div>
+                            <div className="text-xs text-muted-foreground">Logged</div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </TabsContent>
+
+          {departments.map((dept) => (
+            <TabsContent key={dept.toLowerCase()} value={dept.toLowerCase()} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {teamMembers
+                  .filter((member) => member.department === dept)
+                  .map((member) => (
+                    <Link href={`/team/${member.id}`} key={member.id}>
+                      <Card className="hover:shadow-md transition-shadow h-full">
+                        {/* Simplified card for filtered view */}
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={member.avatar || "/placeholder.svg"} />
+                              <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <CardTitle className="text-lg">{member.name}</CardTitle>
+                              <p className="text-sm text-muted-foreground">{member.role}</p>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <Badge className={`text-xs ${getStatusColor(member.status)}`}>{member.status}</Badge>
+                            {member.rank && (
+                              <Badge
+                                variant={member.rank <= 3 ? "default" : "secondary"}
+                                className="flex items-center gap-1"
+                              >
+                                <Award className="h-3 w-3" /> Rank #{member.rank}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="pt-2 border-t">
+                            <div className="flex justify-between items-center mb-1">
+                              <h4 className="text-sm font-medium">Performance</h4>
+                              <span className="font-bold text-lg">{member.performanceScore ?? "N/A"}</span>
+                            </div>
+                            <Progress value={member.performanceScore} />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
+    </SidebarInset>
+  )
+}
