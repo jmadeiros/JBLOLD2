@@ -630,7 +630,7 @@ export default function TeamPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-semibold text-gray-900">{member.name}</span>
-                      <Badge 
+                          <Badge
                         className={`text-xs ${
                           member.status === "active" ? "bg-green-100 text-green-800" :
                           member.status === "busy" ? "bg-red-100 text-red-800" :
@@ -638,23 +638,23 @@ export default function TeamPage() {
                         }`}
                       >
                         {member.status}
-                      </Badge>
+                          </Badge>
                     </div>
                     <div className="text-xs font-medium text-blue-700 mb-1">{member.role}</div>
                     <div className="text-xs text-muted-foreground">
                       {getJobDescription(member.role)}
-                    </div>
+                      </div>
                     <Badge variant="outline" className="text-xs mt-1">
-                      {member.department}
-                    </Badge>
-                  </div>
+                          {member.department}
+                        </Badge>
+                      </div>
                   <div 
                     className="cursor-pointer hover:bg-gray-100 p-1 rounded"
                     onClick={() => window.location.href = `/team/${member.id}`}
                   >
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
+                        </div>
+                      </div>
               ))}
             </div>
           </TabsContent>
@@ -684,22 +684,22 @@ export default function TeamPage() {
                           >
                             {member.status}
                           </Badge>
-                        </div>
+                            </div>
                         <div className="text-xs font-medium text-blue-700 mb-1">{member.role}</div>
                         <div className="text-xs text-muted-foreground">
                           {getJobDescription(member.role)}
-                        </div>
+                          </div>
                         <Badge variant="outline" className="text-xs mt-1">
                           {member.department}
-                        </Badge>
-                      </div>
+                              </Badge>
+                          </div>
                       <div 
                         className="cursor-pointer hover:bg-gray-100 p-1 rounded"
                         onClick={() => window.location.href = `/team/${member.id}`}
                       >
                         <Mail className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </div>
+                            </div>
+                          </div>
                   ))}
               </div>
             </TabsContent>

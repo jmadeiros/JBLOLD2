@@ -152,14 +152,14 @@ export default function SettingsPage() {
                       value={profile.phone}
                       onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                     />
-                  </div>
-                  <div className="space-y-2">
+                </div>
+                <div className="space-y-2">
                     <Label htmlFor="location">Location</Label>
                     <Input
                       id="location"
                       value={profile.location}
                       onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                    />
+                  />
                   </div>
                 </div>
               </CardContent>
@@ -175,47 +175,47 @@ export default function SettingsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Email Notifications</Label>
+                      <Label>Email Notifications</Label>
                     <p className="text-sm text-muted-foreground">
                       Receive notifications via email
                     </p>
-                  </div>
-                  <Switch
+                    </div>
+                    <Switch
                     checked={preferences.emailNotifications}
                     onCheckedChange={(checked) =>
                       setPreferences({ ...preferences, emailNotifications: checked })
                     }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Push Notifications</Label>
+                      <Label>Push Notifications</Label>
                     <p className="text-sm text-muted-foreground">
                       Receive push notifications on your device
                     </p>
-                  </div>
-                  <Switch
+                    </div>
+                    <Switch
                     checked={preferences.pushNotifications}
                     onCheckedChange={(checked) =>
                       setPreferences({ ...preferences, pushNotifications: checked })
                     }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <Label>General Notifications</Label>
                     <p className="text-sm text-muted-foreground">
                       Show notifications for general activities
                     </p>
-                  </div>
-                  <Switch
+                    </div>
+                    <Switch
                     checked={preferences.notifications}
                     onCheckedChange={(checked) =>
                       setPreferences({ ...preferences, notifications: checked })
                     }
-                  />
+                    />
                 </div>
               </CardContent>
             </Card>
@@ -242,40 +242,40 @@ export default function SettingsPage() {
                     }
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Language</Label>
-                  <Select
-                    value={preferences.language}
-                    onValueChange={(value) => setPreferences({ ...preferences, language: value })}
-                  >
+                  <div className="space-y-2">
+                    <Label>Language</Label>
+                    <Select
+                      value={preferences.language}
+                      onValueChange={(value) => setPreferences({ ...preferences, language: value })}
+                    >
                     <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Timezone</Label>
-                  <Select
-                    value={preferences.timezone}
-                    onValueChange={(value) => setPreferences({ ...preferences, timezone: value })}
-                  >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="es">Spanish</SelectItem>
+                        <SelectItem value="fr">French</SelectItem>
+                        <SelectItem value="de">German</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Timezone</Label>
+                    <Select
+                      value={preferences.timezone}
+                      onValueChange={(value) => setPreferences({ ...preferences, timezone: value })}
+                    >
                     <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
                       <SelectItem value="UTC">UTC</SelectItem>
                       <SelectItem value="EST">Eastern Time</SelectItem>
                       <SelectItem value="PST">Pacific Time</SelectItem>
                       <SelectItem value="GMT">GMT</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
               </CardContent>
             </Card>
 
@@ -327,8 +327,8 @@ export default function SettingsPage() {
                       setSecurity({ ...security, twoFactorEnabled: checked })
                     }
                   />
-                </div>
-                <div className="space-y-2">
+                  </div>
+                  <div className="space-y-2">
                   <Label>Session Timeout</Label>
                   <Select
                     value={security.sessionTimeout}
@@ -344,8 +344,8 @@ export default function SettingsPage() {
                       <SelectItem value="240">4 hours</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-2">
+                  </div>
+                  <div className="space-y-2">
                   <Label>Password</Label>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">
@@ -377,7 +377,7 @@ export default function SettingsPage() {
                   <Button variant="outline" className="gap-2" onClick={handleImportData}>
                     <Upload className="h-4 w-4" />
                     Import Data
-                  </Button>
+                </Button>
                 </div>
                 <Separator />
                 <div className="space-y-2">

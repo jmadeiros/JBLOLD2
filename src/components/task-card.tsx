@@ -73,9 +73,9 @@ export function TaskCard({ task, onDragStart, onTaskClick, showProject = false }
             <h3 className="font-medium text-sm leading-tight flex-1">{task.title}</h3>
             <div className="flex items-center gap-1">
               <Badge className={`text-xs ${getPriorityBadge(task.priority)}`}>
-                {task.priority === "high" && <AlertTriangle className="w-3 h-3 mr-1" />}
-                {task.priority.toUpperCase()}
-              </Badge>
+              {task.priority === "high" && <AlertTriangle className="w-3 h-3 mr-1" />}
+              {task.priority.toUpperCase()}
+            </Badge>
               {cvcData && cvcData.isNegative && (
                 <Badge variant="destructive" className="text-xs">
                   <AlertTriangle className="w-3 h-3 mr-1" />

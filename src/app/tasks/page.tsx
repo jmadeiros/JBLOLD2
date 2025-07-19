@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { Task } from "../../../types/task"
 import { KanbanBoard } from "../../components/kanban-board"
 import { PageHeader } from "../../components/page-header"
@@ -234,6 +234,47 @@ export default function Page() {
   const [filterAssignee, setFilterAssignee] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [viewMode, setViewMode] = useState<"kanban" | "list" | "supervisor">("kanban")
+
+  // Load imported tasks from localStorage
+  useEffect(() => {
+    const loadImportedTasks = () => {
+      try {
+        const importedTasks = JSON.parse(localStorage.getItem('importedTasks') || '[]')
+        if (importedTasks.length > 0) {
+          console.log('Loading imported tasks:', importedTasks)
+          // Convert date strings back to Date objects
+          const tasksWithDates = importedTasks.map((task: any) => ({
+            ...task,
+            startDate: task.startDate ? new Date(task.startDate) : undefined,
+            dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+            createdAt: new Date(task.createdAt),
+            updatedAt: new Date(task.updatedAt)
+          }))
+          
+          setTasks(prevTasks => {
+            // Avoid duplicates by checking if tasks are already imported
+            const existingIds = new Set(prevTasks.map(t => t.id))
+            const newTasks = tasksWithDates.filter((task: Task) => !existingIds.has(task.id))
+            return [...prevTasks, ...newTasks]
+          })
+        }
+      } catch (error) {
+        console.error('Failed to load imported tasks:', error)
+      }
+    }
+
+    loadImportedTasks()
+
+    // Listen for storage changes (when tasks are imported from another tab/component)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'importedTasks') {
+        loadImportedTasks()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
   const handleUpdateTask = (updatedTask: Task) => {
     setTasks(tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)))
@@ -527,7 +568,7 @@ export default function Page() {
           if (selectedTask) {
             handleUpdateTask({ ...selectedTask, ...taskData, updatedAt: new Date() })
           } else {
-            handleAddTask(taskData)
+          handleAddTask(taskData)
           }
           setIsDialogOpen(false)
         }}

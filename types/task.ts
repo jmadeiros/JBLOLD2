@@ -149,3 +149,109 @@ export interface KanbanColumn {
   status: Task["status"]
   color: string
 }
+
+// Programme Analysis Types
+export interface TradeTaskBreakdown {
+  trade: string // e.g., "Electrician", "Plumber", "Bricklayer"
+  description: string // e.g., "2nd Fix Electrics – Unit 15, 2nd Floor, Private"
+  startDate: Date
+  endDate: Date
+  floorCoreUnit?: string // e.g., "Unit 15, 2nd Floor, Private"
+  dependencies?: string[] // e.g., ["after window install", "post-plastering"]
+  priority: "high" | "medium" | "low"
+  weekNumber?: number
+  estimatedHours?: number
+  estimatedValue?: number
+}
+
+export interface ProgrammeAdminItem {
+  id: string
+  title: string
+  description?: string
+  type: "client_approval" | "survey" | "design" | "procurement" | "handover" | "milestone" | "meeting"
+  date: Date
+  time?: string
+  priority: "high" | "medium" | "low"
+  projectId?: string
+  projectName?: string
+  assignee?: string
+  notes?: string
+}
+
+export interface ProgramAnalysisResult {
+  programName: string
+  analysisDate: Date
+  tradeTasks: TradeTaskBreakdown[]
+  adminItems: ProgrammeAdminItem[]
+  summary: {
+    totalTasks: number
+    totalAdminItems: number
+    tradeBreakdown: Record<string, number> // trade name -> task count
+    timeline: {
+      startDate: Date
+      endDate: Date
+      durationWeeks: number
+    }
+    criticalPath: string[]
+  }
+  rawProgram?: any // Original uploaded program data
+}
+
+// Calendar Event interface for admin items
+export interface CalendarEvent {
+  id: string
+  title: string
+  description?: string
+  date: Date
+  time?: string
+  type: "meeting" | "inspection" | "delivery" | "approval" | "survey" | "design" | "procurement" | "handover" | "milestone"
+  priority: "high" | "medium" | "low"
+  projectId?: string
+  projectName?: string
+  assignee?: string
+  location?: string
+  attendees?: string[]
+  isRecurring?: boolean
+  recurringType?: "daily" | "weekly" | "monthly"
+  notes?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Enhanced Task with additional program analysis fields
+export interface EnhancedTask extends Task {
+  // Programme-specific fields
+  trade?: string // e.g., "Electrician", "Plumber", "Structural"
+  subTrade?: string // e.g., "First Fix", "Second Fix", "Testing"
+  floorCoreUnit?: string // e.g., "Unit 15, 2nd Floor, Private"
+  dependencies?: string[] // Dependencies on other tasks
+  weekNumber?: number // Week number in programme
+  originalProgrammeId?: string // Reference to original programme line
+  
+  // Enhanced location/area specificity
+  buildingArea?: string // e.g., "Building A", "Core 1", "Elevation North"
+  floor?: string // e.g., "Ground Floor", "1st Floor", "Basement"
+  unit?: string // e.g., "Unit 15", "Flat 3A"
+  
+  // Enhanced scheduling
+  plannedStartDate?: Date // Originally planned start from programme
+  plannedEndDate?: Date // Originally planned end from programme
+  actualStartDate?: Date // When work actually started
+  actualEndDate?: Date // When work actually completed
+  
+  // Programme admin tracking
+  isProgrammeGenerated?: boolean // Was this task generated from programme analysis?
+  programmeAnalysisId?: string // Reference to the analysis that created this task
+}
+
+// File upload and analysis status
+export interface ProgramUploadStatus {
+  id: string
+  fileName: string
+  uploadDate: Date
+  status: "uploading" | "uploaded" | "parsing" | "analyzing" | "completed" | "error"
+  progress: number
+  analysisResult?: ProgramAnalysisResult
+  errorMessage?: string
+  projectId?: string
+}

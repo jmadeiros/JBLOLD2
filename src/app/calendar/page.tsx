@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -705,20 +705,57 @@ export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date(2025, 0, 1)) // January 2025
   const [timeframe, setTimeframe] = useState(12) // in weeks - show 3 months for better project overview
   const [viewDate, setViewDate] = useState(new Date(2025, 0, 1)) // Start of January 2025
+  const [importedCalendarEvents, setImportedCalendarEvents] = useState<CalendarEvent[]>([])
+
+  // Load imported calendar events from localStorage
+  useEffect(() => {
+    const loadImportedEvents = () => {
+      try {
+        const events = JSON.parse(localStorage.getItem('importedCalendarEvents') || '[]')
+        if (events.length > 0) {
+          console.log('Loading imported calendar events:', events)
+          // Convert date strings back to Date objects
+          const eventsWithDates = events.map((event: any) => ({
+            ...event,
+            date: new Date(event.date),
+            createdAt: new Date(event.createdAt),
+            updatedAt: new Date(event.updatedAt)
+          }))
+          setImportedCalendarEvents(eventsWithDates)
+        }
+      } catch (error) {
+        console.error('Failed to load imported calendar events:', error)
+      }
+    }
+
+    loadImportedEvents()
+
+    // Listen for storage changes (when events are imported)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'importedCalendarEvents') {
+        loadImportedEvents()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
   const scheduleItems: ScheduleItem[] = useMemo(() => {
     const tasksAsItems: ScheduleItem[] = allTasks
       .filter((task) => task.dueDate)
       .map((task) => ({ itemType: "task", data: task, date: task.dueDate! }))
 
-    const eventsAsItems: ScheduleItem[] = calendarEvents.map((event) => ({
+    // Combine original calendar events with imported ones
+    const allCalendarEvents = [...calendarEvents, ...importedCalendarEvents]
+    const eventsAsItems: ScheduleItem[] = allCalendarEvents.map((event) => ({
       itemType: "event",
       data: event,
       date: event.date,
     }))
 
     return [...tasksAsItems, ...eventsAsItems].sort((a, b) => a.date.getTime() - b.date.getTime())
-  }, [])
+  }, [importedCalendarEvents])
 
   const selectedDateItems = scheduleItems.filter((item) => isSameDay(item.date, selectedDate))
 

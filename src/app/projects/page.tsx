@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,9 @@ import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
 import { FolderKanban, Plus, Search, Calendar, Users, MoreHorizontal, Star, MapPin, HardHat, Building, Hammer, AlertTriangle, CheckCircle, Clock, Pause } from "lucide-react"
 import Link from "next/link"
+import { ProjectUpload } from "@/components/project-upload"
+import { toast } from "sonner"
+import type { Task, TradeTaskBreakdown, ProgrammeAdminItem, CalendarEvent } from "../../../types/task"
 
 interface Project {
   id: string
@@ -37,7 +40,7 @@ interface Project {
 }
 
 export default function ProjectsPage() {
-  const [projects] = useState<Project[]>([
+  const [projects, setProjects] = useState<Project[]>([
     {
       id: "1",
       name: "London Office Tower",
@@ -155,6 +158,63 @@ export default function ProjectsPage() {
     },
   ])
 
+  // Monitor for new projects created from program uploads
+  useEffect(() => {
+    const checkForNewProject = () => {
+      try {
+        const latestProjectData = localStorage.getItem('latestProjectData')
+        if (latestProjectData) {
+          const projectData = JSON.parse(latestProjectData)
+          
+          // Check if this project is already in our list
+          if (!projects.find(p => p.id === projectData.projectId)) {
+            const newProject: Project = {
+              id: projectData.projectId,
+              name: projectData.projectName,
+              location: "TBD - From Program Upload",
+              description: `Automatically created from uploaded construction program. Contains ${projectData.taskCount} trade tasks${projectData.adminItemCount ? ` and ${projectData.adminItemCount} admin items` : ''}.`,
+              status: "Pre-construction",
+              priority: "medium",
+              progress: 0,
+              dueDate: "TBD",
+              teamMembers: 0,
+              tasksCompleted: 0,
+              totalTasks: projectData.taskCount || 0,
+              isStarred: false,
+              tasksByStatus: {
+                todo: projectData.taskCount || 0,
+                inProgress: 0,
+                review: 0,
+                done: 0
+              },
+              trades: ["Various"], // Would be populated from actual tasks
+              siteSupervisor: "TBD",
+              criticalPathTasks: 0
+            }
+            
+            console.log('Adding new project from program upload:', newProject)
+            setProjects(prev => [newProject, ...prev])
+            
+            // Clear the stored project data to prevent re-adding
+            localStorage.removeItem('latestProjectData')
+            
+            toast.success(`New project created: ${projectData.projectName}`, {
+              description: "Project added to your portfolio"
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check for new project:', error)
+      }
+    }
+
+    // Check immediately and then set up interval
+    checkForNewProject()
+    const interval = setInterval(checkForNewProject, 2000) // Check every 2 seconds
+
+    return () => clearInterval(interval)
+  }, [projects])
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "In Progress":
@@ -187,6 +247,182 @@ export default function ProjectsPage() {
 
   const activeProjects = projects.filter((p) => p.status === "In Progress")
   const completedProjects = projects.filter((p) => p.status === "Completed")
+
+  const handleFilesUploaded = (files: File[]) => {
+    console.log('Files uploaded:', files)
+    
+    // Here you would typically:
+    // 1. Upload files to your server/cloud storage
+    // 2. Create a new project or attach to existing project
+    // 3. Update the projects state
+    // 4. Show success notification
+    
+    // Calculate total size
+    const totalSize = files.reduce((acc, file) => acc + file.size, 0)
+    const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2)
+    
+    // Show detailed success message
+    const fileTypes = [...new Set(files.map(f => f.name.split('.').pop()?.toUpperCase()))]
+    toast.success(
+      `Project files ready for processing`, 
+      {
+        description: `${files.length} files (${totalSizeMB}MB) • Types: ${fileTypes.join(', ')}`
+      }
+    )
+    
+    // Log files for development
+    files.forEach(file => {
+      console.log(`Processed: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+    })
+  }
+
+  const handleTasksImported = (tasks: TradeTaskBreakdown[], programName?: string) => {
+    console.log('Tasks imported:', tasks)
+    
+    // Create new project ID
+    const newProjectId = `proj-${Date.now()}`
+    const projectName = programName || "New Project from Program"
+    
+    // Convert TradeTaskBreakdown to Task objects
+    const newTasks: Task[] = tasks.map((tradeTask, index) => ({
+      id: `trade-${Date.now()}-${index}`,
+      title: tradeTask.description,
+      description: `${tradeTask.trade} - ${tradeTask.description}`,
+      completed: false,
+      priority: tradeTask.priority,
+      status: "todo" as const,
+      startDate: tradeTask.startDate,
+      dueDate: tradeTask.endDate,
+      assignee: undefined, // To be assigned later
+      tags: [tradeTask.trade.toLowerCase().replace(/\s+/g, '-')],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      projectId: newProjectId,
+      projectName: projectName,
+      category: mapTradeToCategory(tradeTask.trade),
+      // Enhanced fields from program analysis
+      trade: tradeTask.trade,
+      floorCoreUnit: tradeTask.floorCoreUnit,
+      dependencies: tradeTask.dependencies,
+      weekNumber: tradeTask.weekNumber,
+      isProgrammeGenerated: true,
+      cvc: tradeTask.estimatedValue ? {
+        estimatedContributionValue: tradeTask.estimatedValue,
+        costs: {
+          labourCost: tradeTask.estimatedHours ? tradeTask.estimatedHours * 25 : 0, // £25/hour estimate
+          materialsCost: 0,
+          equipmentCost: 0,
+          travelAccommodation: 0,
+          subcontractorFees: 0,
+          bonusesAdjustments: 0
+        },
+        totalCost: tradeTask.estimatedHours ? tradeTask.estimatedHours * 25 : 0,
+        cvcScore: tradeTask.estimatedValue ? tradeTask.estimatedValue - (tradeTask.estimatedHours ? tradeTask.estimatedHours * 25 : 0) : 0,
+        cvcPercentage: tradeTask.estimatedValue ? ((tradeTask.estimatedValue - (tradeTask.estimatedHours ? tradeTask.estimatedHours * 25 : 0)) / tradeTask.estimatedValue) * 100 : 0,
+        isNegative: tradeTask.estimatedValue ? tradeTask.estimatedValue < (tradeTask.estimatedHours ? tradeTask.estimatedHours * 25 : 0) : false,
+        hoursLogged: 0,
+        hourlyRate: 25
+      } : undefined
+    }))
+    
+    // Store both tasks and project data
+    const existingTasks = JSON.parse(localStorage.getItem('importedTasks') || '[]')
+    const allTasks = [...existingTasks, ...newTasks]
+    localStorage.setItem('importedTasks', JSON.stringify(allTasks))
+    
+    // Store project data for later retrieval
+    localStorage.setItem('latestProjectData', JSON.stringify({
+      projectId: newProjectId,
+      projectName,
+      taskCount: tasks.length,
+      createdAt: new Date().toISOString()
+    }))
+    
+    toast.success(`Created new project: ${projectName}`, {
+      description: `${tasks.length} trade tasks imported. Check the Tasks page!`
+    })
+    
+    console.log('Generated tasks for new project:', { projectName, projectId: newProjectId, taskCount: newTasks.length })
+  }
+
+  // Helper function to map trade to category
+  const mapTradeToCategory = (trade: string): Task['category'] => {
+    const tradeMapping: Record<string, Task['category']> = {
+      'Electrician': 'Electrical',
+      'Plumber': 'Plumbing', 
+      'Structural Engineer': 'Structural',
+      'Demolition Specialist': 'Site Work',
+      'Asbestos Specialist': 'Safety',
+      'Crane Operator': 'Site Work',
+      'Scaffolder': 'Site Work',
+      'General Construction': 'Structural'
+    }
+    
+    return tradeMapping[trade] || 'Structural'
+  }
+
+  const handleAdminItemsImported = (items: ProgrammeAdminItem[], programName?: string) => {
+    console.log('Admin items imported:', items)
+    
+    // Get the latest project data to associate admin items with the same project
+    const latestProject = JSON.parse(localStorage.getItem('latestProjectData') || '{}')
+    const projectId = latestProject.projectId || `proj-${Date.now()}`
+    const projectName = programName || latestProject.projectName || "New Project from Program"
+    
+    // Convert ProgrammeAdminItem to CalendarEvent objects
+    const newCalendarEvents: CalendarEvent[] = items.map((adminItem, index) => ({
+      id: `admin-${Date.now()}-${index}`,
+      title: adminItem.title,
+      description: adminItem.description,
+      date: adminItem.date,
+      time: adminItem.time,
+      type: mapAdminTypeToEventType(adminItem.type),
+      priority: adminItem.priority,
+      projectId: projectId,
+      projectName: projectName,
+      assignee: adminItem.assignee,
+      location: undefined,
+      attendees: adminItem.assignee ? [adminItem.assignee] : undefined,
+      isRecurring: false,
+      notes: adminItem.notes,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }))
+    
+    // Store in localStorage for demo (in real app, this would save to database)
+    const existingEvents = JSON.parse(localStorage.getItem('importedCalendarEvents') || '[]')
+    const allEvents = [...existingEvents, ...newCalendarEvents]
+    localStorage.setItem('importedCalendarEvents', JSON.stringify(allEvents))
+    
+    // Update latest project data with admin items count
+    if (latestProject.projectId) {
+      localStorage.setItem('latestProjectData', JSON.stringify({
+        ...latestProject,
+        adminItemCount: items.length
+      }))
+    }
+    
+    toast.success(`Added ${items.length} admin items to ${projectName}`, {
+      description: "Items added to project calendar. Check the Calendar page!"
+    })
+    
+    console.log('Generated calendar events for project:', { projectName, projectId, eventCount: newCalendarEvents.length })
+  }
+
+  // Helper function to map admin type to calendar event type  
+  const mapAdminTypeToEventType = (adminType: ProgrammeAdminItem['type']): CalendarEvent['type'] => {
+    const typeMapping: Record<ProgrammeAdminItem['type'], CalendarEvent['type']> = {
+      'client_approval': 'approval',
+      'survey': 'inspection', 
+      'design': 'meeting',
+      'procurement': 'delivery',
+      'handover': 'handover',
+      'milestone': 'milestone',
+      'meeting': 'meeting'
+    }
+    
+    return typeMapping[adminType] || 'meeting'
+  }
 
   return (
     <SidebarInset>
@@ -281,6 +517,17 @@ export default function ProjectsPage() {
 
         {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Upload Card */}
+          <ProjectUpload 
+            onFilesUploaded={handleFilesUploaded}
+            onTasksImported={handleTasksImported}
+            onAdminItemsImported={handleAdminItemsImported}
+            maxFiles={10}
+            maxFileSize={100}
+            acceptedTypes={['.pdf', '.dwg', '.xlsx', '.docx', '.png', '.jpg', '.jpeg', '.zip', '.mpp', '.rvt']}
+            enableAIAnalysis={true}
+          />
+          
           {projects.map((project) => (
             <Link href={`/projects/${project.id}`} key={project.id}>
               <Card className="hover:shadow-md transition-shadow flex flex-col h-full">

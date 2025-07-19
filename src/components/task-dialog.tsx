@@ -521,7 +521,7 @@ export function TaskDialog({ task, isOpen, onClose, onSave }: TaskDialogProps) {
           <TaskDetailsView task={task} onSave={onSave} />
         ) : (
           // Edit mode - show edit form
-          <div className="space-y-6">
+        <div className="space-y-6">
           {/* Title */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Title</label>
@@ -601,15 +601,15 @@ export function TaskDialog({ task, isOpen, onClose, onSave }: TaskDialogProps) {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Recurrence Type</label>
                   <Select value={recurringType} onValueChange={(value: string) => setRecurringType(value as Task["recurringType"])}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
                 </div>
 
                 <div className="space-y-2">
