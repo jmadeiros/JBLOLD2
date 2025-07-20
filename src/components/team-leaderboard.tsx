@@ -23,27 +23,56 @@ export function TeamLeaderboard({ tradespeople, assessments }: TeamLeaderboardPr
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
   };
 
-  // Calculate timesheet compliance (percentage of required entries submitted)
-  const getTimesheetCompliance = (tradespersonId: string): number => {
-    const weekDays = 5; // Monday to Friday
-    const submittedDays = Math.floor(Math.random() * 5) + 1; // Mock data - would come from actual timesheet entries
-    return Math.round((submittedDays / weekDays) * 100);
+  // Generate mock clock in/out times for the last week
+  const getWeeklyClockTimes = (tradespersonId: string): Array<{day: string, clockIn: string, clockOut: string, absent?: boolean}> => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    const baseClockIn = 8; // 8 AM base
+    const baseClockOut = 17; // 5 PM base
+    
+    // Use tradesperson ID to create consistent times for each person
+    const seed = parseInt(tradespersonId) || 1;
+    
+    return days.map((day, index) => {
+      // Some variation in times based on person and day
+      const variation = (seed + index) % 3;
+      const clockInHour = baseClockIn + (variation === 0 ? 0 : variation === 1 ? -15/60 : 15/60); // ±15 min variation
+      const clockOutHour = baseClockOut + (variation === 0 ? 0 : variation === 1 ? 30/60 : -30/60); // ±30 min variation
+      
+      // Occasionally someone might be absent (5% chance)
+      const isAbsent = (seed + index) % 20 === 0;
+      
+      if (isAbsent) {
+        return { day, clockIn: '--', clockOut: '--', absent: true };
+      }
+      
+      const clockIn = Math.floor(clockInHour).toString().padStart(2, '0') + ':' + 
+                     Math.round((clockInHour % 1) * 60).toString().padStart(2, '0');
+      const clockOut = Math.floor(clockOutHour).toString().padStart(2, '0') + ':' + 
+                      Math.round((clockOutHour % 1) * 60).toString().padStart(2, '0');
+      
+      return { day, clockIn, clockOut };
+    });
   };
 
-  // Calculate rankings based on assessment score + timesheet compliance
+  // Calculate rankings based on assessment score + clock time attendance
   const rankedTradespeople = tradespeople
     .map(person => {
       const latestAssessment = getLatestAssessment(person.id);
-      const timesheetCompliance = getTimesheetCompliance(person.id);
+      const weeklyTimes = getWeeklyClockTimes(person.id);
       const assessmentScore = latestAssessment?.overallScore || 0;
       
-      // Combined performance: 70% assessment score, 30% timesheet compliance
-      const combinedScore = (assessmentScore * 0.7) + (timesheetCompliance / 10 * 0.3);
+      // Calculate attendance score based on days present
+      const daysPresent = weeklyTimes.filter(day => !day.absent).length;
+      const attendanceScore = (daysPresent / 5) * 100; // Out of 5 working days
+      
+      // Combined performance: 70% assessment score, 30% attendance
+      const combinedScore = (assessmentScore * 0.7) + (attendanceScore / 10 * 0.3);
       
       return {
         ...person,
         latestAssessment,
-        timesheetCompliance,
+        weeklyTimes,
+        attendanceScore,
         combinedScore
       };
     })
@@ -98,18 +127,41 @@ export function TeamLeaderboard({ tradespeople, assessments }: TeamLeaderboardPr
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
+                  <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-medium text-sm">{person.name}</h3>
                     <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 border-blue-200">
                       {person.trade}
                     </Badge>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {assessment ? (
-                      <span>Assessed: {new Date(assessment.weekEndingDate).toLocaleDateString()}</span>
-                    ) : (
-                      <span>No assessment</span>
-                    )}
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground">
+                      {assessment ? (
+                        <span>Assessed: {new Date(assessment.weekEndingDate).toLocaleDateString()}</span>
+                      ) : (
+                        <span>No assessment</span>
+                      )}
+                    </div>
+                    <div className="flex gap-3 mt-2 w-full max-w-xs">
+                      {person.weeklyTimes.map((day, idx) => (
+                        <div key={idx} className={`
+                          flex-1 text-center px-3 py-2 rounded-lg text-xs
+                          ${day.absent 
+                            ? 'bg-red-50 border border-red-200 text-red-600' 
+                            : 'bg-green-50 border border-green-200 text-green-700'
+                          }
+                        `}>
+                          <div className="font-semibold text-[10px] mb-1 uppercase tracking-wide">{day.day}</div>
+                          <div className="space-y-1">
+                            <div className="text-[11px] font-mono font-medium">
+                              {day.absent ? '--:--' : day.clockIn}
+                            </div>
+                            <div className="text-[11px] font-mono opacity-80">
+                              {day.absent ? '--:--' : day.clockOut}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 
@@ -122,10 +174,7 @@ export function TeamLeaderboard({ tradespeople, assessments }: TeamLeaderboardPr
                       <div className="text-xs text-muted-foreground mt-0.5">Score</div>
                     </div>
                   )}
-                  <div className="text-center">
-                    <div className="text-sm font-medium">{person.timesheetCompliance}%</div>
-                    <div className="text-xs text-muted-foreground">Timesheet</div>
-                  </div>
+
                   <div className="text-center">
                     <div className="text-sm font-semibold">{overallPerformance.toFixed(1)}</div>
                     <div className="text-xs text-muted-foreground">Overall</div>
