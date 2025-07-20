@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,10 @@ import {
   CheckCircle,
   Calendar,
   Clock,
-  Star
+  Star,
+  FileText,
+  Users,
+  Building
 } from "lucide-react"
 import { 
   format, 
@@ -27,29 +30,32 @@ import {
   startOfWeek,
   endOfWeek
 } from "date-fns"
-import type { Task } from "../../types/task"
+import type { ProgrammeAdminItem } from "../../types/task"
 
 interface MonthlyCalendarProps {
-  tasks: Task[]
-  onTaskClick?: (task: Task) => void
+  onItemClick?: (item: ProgrammeAdminItem) => void
 }
 
-// Helper functions to consistently identify task types for this view
-const isTaskAdmin = (task: Task) => {
-  const adminCategories = ["Safety", "Procurement", "Site Work"]
-  const adminTags = ["admin", "inspection", "permit", "compliance", "cleanup"]
-  if (adminCategories.includes(task.category || '')) return true
-  if (task.tags?.some(tag => adminTags.includes(tag))) return true
-  return false
-}
-
-const isTaskMilestone = (task: Task) => {
-  return task.tags?.includes("milestone") || task.tags?.includes("critical")
-}
-
-
-export function MonthlyCalendar({ tasks, onTaskClick }: MonthlyCalendarProps) {
+export function MonthlyCalendar({ onItemClick }: MonthlyCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [adminItems, setAdminItems] = useState<ProgrammeAdminItem[]>([])
+
+  // Load programme admin items from localStorage
+  useEffect(() => {
+    try {
+      const items = JSON.parse(localStorage.getItem('importedAdminItems') || '[]')
+      if (items.length > 0) {
+        // Convert date strings back to Date objects
+        const itemsWithDates = items.map((item: any) => ({
+          ...item,
+          date: new Date(item.date)
+        }))
+        setAdminItems(itemsWithDates)
+      }
+    } catch (error) {
+      console.error('Failed to load admin items:', error)
+    }
+  }, [])
 
   // Navigate months
   const navigateMonth = (direction: "prev" | "next") => {
@@ -69,69 +75,99 @@ export function MonthlyCalendar({ tasks, onTaskClick }: MonthlyCalendarProps) {
     })
   }, [currentDate])
 
-  // Filter and categorize tasks by type
-  const categorizedTasks = useMemo(() => {
-    const adminTasks = tasks.filter(isTaskAdmin)
-    const milestones = tasks.filter(isTaskMilestone)
-    const shownTasks = [...new Set([...adminTasks, ...milestones])] // Use Set to avoid duplicates
+  // Filter and categorize admin items by type
+  const categorizedItems = useMemo(() => {
+    const milestones = adminItems.filter(item => item.type === 'milestone')
+    const approvals = adminItems.filter(item => item.type === 'client_approval')
+    const surveys = adminItems.filter(item => item.type === 'survey')
+    const design = adminItems.filter(item => item.type === 'design')
+    const procurement = adminItems.filter(item => item.type === 'procurement')
+    const handovers = adminItems.filter(item => item.type === 'handover')
+    const meetings = adminItems.filter(item => item.type === 'meeting')
     
     return { 
-      adminTasks, 
       milestones,
-      completedCount: shownTasks.filter(t => t.completed).length
+      approvals,
+      surveys,
+      design,
+      procurement,
+      handovers,
+      meetings,
+      totalItems: adminItems.length
     }
-  }, [tasks])
+  }, [adminItems])
 
-  // Get tasks for a specific day - only admin and milestone tasks
-  const getTasksForDay = (day: Date) => {
-    return tasks.filter(task => {
-      if (!task.dueDate) return false
-      
-      // Only show admin and milestone tasks
-      const isAdmin = isTaskAdmin(task)
-      const isMilestone = isTaskMilestone(task)
-      
-      if (!isAdmin && !isMilestone) {
-        return false
-      }
-      
-      // Check if task is due on this day or spans this day
-      if (task.startDate && task.dueDate) {
-        return day >= task.startDate && day <= task.dueDate
-      }
-      
-      return isSameDay(task.dueDate, day)
+  // Get admin items for a specific day
+  const getItemsForDay = (day: Date) => {
+    return adminItems.filter(item => {
+      if (!item.date) return false
+      return isSameDay(item.date, day)
     })
   }
 
-  // Get task type for styling
-  const getTaskType = (task: Task) => {
-    if (isTaskMilestone(task)) return "milestone"
-    if (isTaskAdmin(task)) return "admin"
-    return "regular" // Fallback, should not be hit with current filter
-  }
-
-  // Get task type styling
-  const getTaskStyling = (type: string) => {
+  // Get item type styling
+  const getItemStyling = (type: string) => {
     switch (type) {
       case "milestone":
         return "bg-purple-100 text-purple-800 border-purple-200"
-      case "admin":
+      case "client_approval":
+        return "bg-green-100 text-green-800 border-green-200"
+      case "survey":
         return "bg-blue-100 text-blue-800 border-blue-200"
+      case "design":
+        return "bg-orange-100 text-orange-800 border-orange-200"
+      case "procurement":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200"
+      case "handover":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200"
+      case "meeting":
+        return "bg-indigo-100 text-indigo-800 border-indigo-200"
       default:
         return "bg-gray-100 text-gray-800 border-gray-200"
     }
   }
 
-  // Get task icon
-  const getTaskIcon = (type: string) => {
+  // Get item icon
+  const getItemIcon = (type: string) => {
     switch (type) {
       case "milestone":
         return <Flag className="h-3 w-3" />
-      case "admin":
+      case "client_approval":
+        return <CheckCircle className="h-3 w-3" />
+      case "survey":
+        return <Building className="h-3 w-3" />
+      case "design":
+        return <FileText className="h-3 w-3" />
+      case "procurement":
+        return <Star className="h-3 w-3" />
+      case "handover":
         return <Calendar className="h-3 w-3" />
+      case "meeting":
+        return <Users className="h-3 w-3" />
       default:
-        return <Clock className="h-3 w-3" /> // Fallback icon
+        return <Clock className="h-3 w-3" />
+    }
+  }
+
+  // Get readable type name
+  const getTypeName = (type: string) => {
+    switch (type) {
+      case "client_approval":
+        return "Client Approval"
+      case "survey":
+        return "Survey"
+      case "design":
+        return "Design"
+      case "procurement":
+        return "Procurement"
+      case "handover":
+        return "Handover"
+      case "milestone":
+        return "Milestone"
+      case "meeting":
+        return "Meeting"
+      default:
+        return "Admin"
     }
   }
 
@@ -141,7 +177,7 @@ export function MonthlyCalendar({ tasks, onTaskClick }: MonthlyCalendarProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            30-Day Calendar View
+            Programme Admin Calendar
           </CardTitle>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigateMonth("prev")}>
@@ -160,111 +196,139 @@ export function MonthlyCalendar({ tasks, onTaskClick }: MonthlyCalendarProps) {
         <div className="flex flex-wrap gap-4 text-xs pt-3">
           <div className="flex items-center gap-1.5">
             <Flag className="h-3 w-3 text-purple-600" />
-            <span>Milestones & Critical</span>
+            <span>Milestones</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Calendar className="h-3 w-3 text-blue-600" />
-            <span>Admin & Site Work</span>
+            <CheckCircle className="h-3 w-3 text-green-600" />
+            <span>Approvals</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Building className="h-3 w-3 text-blue-600" />
+            <span>Surveys</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <FileText className="h-3 w-3 text-orange-600" />
+            <span>Design</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Star className="h-3 w-3 text-yellow-600" />
+            <span>Procurement</span>
           </div>
         </div>
       </CardHeader>
       
       <CardContent>
-        {/* Calendar Grid */}
-        <div className="space-y-4">
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-1">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-              <div key={day} className="text-center text-xs font-medium text-muted-foreground p-2">
-                {day}
+        {adminItems.length === 0 ? (
+          <div className="text-center py-8">
+            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">No Programme Admin Items</h3>
+            <p className="text-sm text-muted-foreground">
+              Upload a construction programme to see admin items, milestones, and key dates.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Calendar Grid */}
+            <div className="space-y-4">
+              {/* Day Headers */}
+              <div className="grid grid-cols-7 gap-1">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+                  <div key={day} className="text-center text-xs font-medium text-muted-foreground p-2">
+                    {day}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, dayIdx) => {
-              const dayTasks = getTasksForDay(day)
-              const isCurrentMonth = isSameMonth(day, currentDate)
-              const isTodayDate = isToday(day)
               
-              return (
-                <div
-                  key={dayIdx}
-                  className={`
-                    min-h-[100px] p-1 border border-border rounded-lg
-                    ${isCurrentMonth ? "bg-background" : "bg-muted/20"}
-                    ${isTodayDate ? "ring-2 ring-blue-500 bg-blue-50/50" : ""}
-                  `}
-                >
-                  {/* Day Number */}
-                  <div className={`
-                    text-xs font-medium mb-1 text-center
-                    ${isCurrentMonth ? "text-foreground" : "text-muted-foreground"}
-                    ${isTodayDate ? "text-blue-600 font-bold" : ""}
-                  `}>
-                    {format(day, "d")}
-                  </div>
+              {/* Calendar Days */}
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((day, dayIdx) => {
+                  const dayItems = getItemsForDay(day)
+                  const isCurrentMonth = isSameMonth(day, currentDate)
+                  const isTodayDate = isToday(day)
                   
-                  {/* Tasks for this day */}
-                  <div className="space-y-1">
-                    {dayTasks.slice(0, 3).map((task, taskIdx) => {
-                      const taskType = getTaskType(task)
-                      const styling = getTaskStyling(taskType)
-                      
-                      return (
-                        <div
-                          key={taskIdx}
-                          onClick={() => onTaskClick?.(task)}
-                          className={`
-                            text-xs p-1 rounded border cursor-pointer hover:opacity-80 transition-opacity
-                            ${styling}
-                            ${task.completed ? "opacity-50 line-through" : ""}
-                          `}
-                          title={`${task.title} - ${task.category}`}
-                        >
-                          <div className="flex items-center gap-1 truncate">
-                            {getTaskIcon(taskType)}
-                            <span className="truncate">{task.title}</span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                    
-                    {/* Show count if more tasks */}
-                    {dayTasks.length > 3 && (
-                      <div className="text-xs text-muted-foreground text-center py-1">
-                        +{dayTasks.length - 3} more
+                  return (
+                    <div
+                      key={dayIdx}
+                      className={`
+                        min-h-[100px] p-1 border border-border rounded-lg
+                        ${isCurrentMonth ? "bg-background" : "bg-muted/20"}
+                        ${isTodayDate ? "ring-2 ring-blue-500 bg-blue-50/50" : ""}
+                      `}
+                    >
+                      {/* Day Number */}
+                      <div className={`
+                        text-xs font-medium mb-1 text-center
+                        ${isCurrentMonth ? "text-foreground" : "text-muted-foreground"}
+                        ${isTodayDate ? "text-blue-600 font-bold" : ""}
+                      `}>
+                        {format(day, "d")}
                       </div>
-                    )}
-                  </div>
+                      
+                      {/* Admin items for this day */}
+                      <div className="space-y-1">
+                        {dayItems.slice(0, 3).map((item, itemIdx) => {
+                          const styling = getItemStyling(item.type)
+                          
+                          return (
+                            <div
+                              key={itemIdx}
+                              onClick={() => onItemClick?.(item)}
+                              className={`
+                                text-xs p-1 rounded border cursor-pointer hover:opacity-80 transition-opacity
+                                ${styling}
+                              `}
+                              title={`${item.title} - ${getTypeName(item.type)}`}
+                            >
+                              <div className="flex items-center gap-1 truncate">
+                                {getItemIcon(item.type)}
+                                <span className="truncate">{item.title}</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        
+                        {/* Show count if more items */}
+                        {dayItems.length > 3 && (
+                          <div className="text-xs text-muted-foreground text-center py-1">
+                            +{dayItems.length - 3} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            
+            {/* Summary Statistics */}
+            <div className="mt-6 grid grid-cols-4 gap-4 pt-4 border-t">
+              <div className="text-center">
+                <div className="text-lg font-bold text-purple-600">
+                  {categorizedItems.milestones.length}
                 </div>
-              )
-            })}
-          </div>
-        </div>
-        
-        {/* Summary Statistics */}
-        <div className="mt-6 grid grid-cols-3 gap-4 pt-4 border-t">
-          <div className="text-center">
-            <div className="text-lg font-bold text-purple-600">
-              {categorizedTasks.milestones.length}
+                <div className="text-xs text-muted-foreground">Milestones</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">
+                  {categorizedItems.approvals.length}
+                </div>
+                <div className="text-xs text-muted-foreground">Approvals</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-blue-600">
+                  {categorizedItems.surveys.length + categorizedItems.design.length}
+                </div>
+                <div className="text-xs text-muted-foreground">Surveys & Design</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-yellow-600">
+                  {categorizedItems.totalItems}
+                </div>
+                <div className="text-xs text-muted-foreground">Total Items</div>
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">Milestones</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-blue-600">
-              {categorizedTasks.adminTasks.length}
-            </div>
-            <div className="text-xs text-muted-foreground">Admin Tasks</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-green-600">
-              {categorizedTasks.completedCount}
-            </div>
-            <div className="text-xs text-muted-foreground">Completed</div>
-          </div>
-        </div>
+          </>
+        )}
       </CardContent>
     </Card>
   )

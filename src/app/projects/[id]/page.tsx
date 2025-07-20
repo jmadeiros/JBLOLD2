@@ -1595,11 +1595,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             /* 30-Day Calendar View */
             <div className="bg-white rounded-lg">
               <MonthlyCalendar 
-                tasks={tasks.filter(task => task.projectId === project?.id)}
-                onTaskClick={(task) => {
-                  setSelectedTask(task)
-                  setTaskDialogDate(task.dueDate || new Date())
-                  setIsTaskDialogOpen(true)
+                onItemClick={(item) => {
+                  // Show admin item details in a toast
+                  toast.info(`${item.title}`, {
+                    description: `${item.description || 'Programme admin item'} - ${item.type.replace('_', ' ')}`
+                  })
                 }}
               />
             </div>
