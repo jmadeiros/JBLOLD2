@@ -9,7 +9,8 @@ import {
   Users,
   AlertTriangle,
   Clock,
-  DollarSign
+  DollarSign,
+  Trash2
 } from "lucide-react"
 
 interface TeamMember {
@@ -44,7 +45,8 @@ interface Project {
 }
 
 interface DetailedProjectCardProps {
-  project: Project
+  project: Project;
+  onDelete: (projectId: string) => void;
 }
 
 const getCriticalTasks = (project: Project) => [
@@ -60,7 +62,7 @@ const getCriticalTasks = (project: Project) => [
   },
 ]
 
-export function DetailedProjectCard({ project }: DetailedProjectCardProps) {
+export function DetailedProjectCard({ project, onDelete }: DetailedProjectCardProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Delayed":
@@ -90,7 +92,12 @@ export function DetailedProjectCard({ project }: DetailedProjectCardProps) {
               {project.location}
             </div>
           </div>
-          {getStatusBadge(project.status)}
+          <div className="flex items-center gap-2">
+            {getStatusBadge(project.status)}
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.preventDefault(); onDelete(project.id); }}>
+              <Trash2 className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          </div>
         </div>
         
         <p className="text-xs text-muted-foreground">{project.description}</p>

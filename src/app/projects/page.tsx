@@ -272,6 +272,13 @@ export default function ProjectsPage() {
     })
   }
   
+  const handleDeleteProject = (projectId: string) => {
+    const updatedProjects = projects.filter(p => p.id !== projectId);
+    setProjects(updatedProjects);
+    localStorage.setItem('constructionProjects', JSON.stringify(updatedProjects));
+    toast.success("Project deleted successfully.");
+  };
+
   return (
     <SidebarInset>
       <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
@@ -344,7 +351,7 @@ export default function ProjectsPage() {
             />
             {projects.map((project) => (
               <Link href={`/projects/${project.id}`} key={project.id}>
-                <DetailedProjectCard project={project} />
+                <DetailedProjectCard project={project} onDelete={handleDeleteProject} />
               </Link>
             ))}
           </div>

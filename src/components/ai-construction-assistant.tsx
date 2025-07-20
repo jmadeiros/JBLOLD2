@@ -37,41 +37,6 @@ export function AIConstructionAssistant() {
               Send
             </Button>
           </div>
-          
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="flex-1">
-              <Search className="h-4 w-4 mr-2" />
-              Search
-            </Button>
-            <Button size="sm" variant="outline" className="flex-1">
-              <Zap className="h-4 w-4 mr-2" />
-              Analyze
-            </Button>
-          </div>
-        </div>
-
-        <div className="space-y-3 pt-2 border-t">
-          <h4 className="text-sm font-medium">Quick Suggestions</h4>
-          <div className="space-y-2">
-            <button 
-              className="w-full text-left p-2 text-xs bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              onClick={() => setQuery("What's causing delays in the Downtown Office Complex?")}
-            >
-              What's causing delays in the Downtown Office Complex?
-            </button>
-            <button 
-              className="w-full text-left p-2 text-xs bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              onClick={() => setQuery("Show me resource allocation for this week")}
-            >
-              Show me resource allocation for this week
-            </button>
-            <button 
-              className="w-full text-left p-2 text-xs bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              onClick={() => setQuery("Any safety concerns I should know about?")}
-            >
-              Any safety concerns I should know about?
-            </button>
-          </div>
         </div>
       </CardContent>
     </Card>
