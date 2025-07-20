@@ -268,4 +268,4 @@ export function MonthlyCalendar({ tasks, onTaskClick }: MonthlyCalendarProps) {
       </CardContent>
     </Card>
   )
-} 
+}
