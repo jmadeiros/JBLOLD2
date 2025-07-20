@@ -5,6 +5,10 @@ import type { Task } from "../../types/task"
 import { useMemo, useState } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import {
   differenceInDays,
   format,
@@ -13,9 +17,9 @@ import {
   endOfWeek,
   isWithinInterval,
   startOfDay,
+  addDays,
 } from "date-fns"
 import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
 import { User, ChevronDown, ChevronRight, Users } from "lucide-react"
 
 const getInitials = (name = "") =>
@@ -74,11 +78,48 @@ interface GanttTimelineProps {
   tasks: Task[]
   viewStartDate: Date
   viewEndDate: Date
+  onTaskUpdate?: (updatedTask: Task, reason: string) => void
 }
 
-export function GanttTimeline({ tasks, viewStartDate, viewEndDate }: GanttTimelineProps) {
+interface DragState {
+  isDragging: boolean
+  task: Task | null
+  originalStartIndex: number
+  originalEndIndex: number
+  currentStartIndex: number
+  offset: { x: number; y: number }
+}
+
+interface ReasonDialogState {
+  isOpen: boolean
+  task: Task | null
+  originalDates: { start: Date; end: Date } | null
+  newDates: { start: Date; end: Date } | null
+  reason: string
+}
+
+export function GanttTimeline({ tasks, viewStartDate, viewEndDate, onTaskUpdate }: GanttTimelineProps) {
   // Group tasks by trade/assignee and manage collapsed state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  
+  // Drag and drop state
+  const [dragState, setDragState] = useState<DragState>({
+    isDragging: false,
+    task: null,
+    originalStartIndex: -1,
+    originalEndIndex: -1,
+    currentStartIndex: -1,
+    offset: { x: 0, y: 0 }
+  })
+  
+  // Reason dialog state
+  const [reasonDialog, setReasonDialog] = useState<ReasonDialogState>({
+    isOpen: false,
+    task: null,
+    originalDates: null,
+    newDates: null,
+    reason: ""
+  })
 
   const taskGroups = useMemo(() => {
     const groupMap = new Map<string, { tasks: Task[]; color: string }>()
@@ -136,11 +177,132 @@ export function GanttTimeline({ tasks, viewStartDate, viewEndDate }: GanttTimeli
     })
   }
 
+  // Drag handlers
+  const handleTaskMouseDown = (e: React.MouseEvent, task: Task) => {
+    if (!task.startDate || !task.dueDate) return
+
+    const startDayIndex = differenceInDays(task.startDate, viewStartDate)
+    const endDayIndex = differenceInDays(task.dueDate, viewStartDate)
+    
+    const rect = e.currentTarget.getBoundingClientRect()
+    const offset = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    }
+
+    setDragState({
+      isDragging: true,
+      task,
+      originalStartIndex: startDayIndex,
+      originalEndIndex: endDayIndex,
+      currentStartIndex: startDayIndex,
+      offset
+    })
+
+    e.preventDefault()
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!dragState.isDragging || !dragState.task) return
+
+    const container = e.currentTarget
+    const rect = container.getBoundingClientRect()
+    const timelineStart = SIDE_PANEL_WIDTH_PX
+    const relativeX = e.clientX - rect.left - timelineStart - dragState.offset.x
+    
+    const newStartIndex = Math.round(relativeX / DAY_WIDTH_PX)
+    const clampedStartIndex = Math.max(0, Math.min(newStartIndex, totalDays - 1))
+
+    setDragState(prev => ({
+      ...prev,
+      currentStartIndex: clampedStartIndex
+    }))
+  }
+
+  const handleMouseUp = () => {
+    if (!dragState.isDragging || !dragState.task) return
+
+    const task = dragState.task
+    const daysDifference = dragState.currentStartIndex - dragState.originalStartIndex
+    
+    if (daysDifference !== 0) {
+      // Calculate new dates
+      const newStartDate = addDays(task.startDate!, daysDifference)
+      const newEndDate = addDays(task.dueDate!, daysDifference)
+      
+      // Open reason dialog
+      setReasonDialog({
+        isOpen: true,
+        task,
+        originalDates: { start: task.startDate!, end: task.dueDate! },
+        newDates: { start: newStartDate, end: newEndDate },
+        reason: ""
+      })
+    }
+
+    setDragState({
+      isDragging: false,
+      task: null,
+      originalStartIndex: -1,
+      originalEndIndex: -1,
+      currentStartIndex: -1,
+      offset: { x: 0, y: 0 }
+    })
+  }
+
+  const handleReasonSubmit = () => {
+    if (!reasonDialog.task || !reasonDialog.newDates || !reasonDialog.reason.trim() || !onTaskUpdate) return
+
+    const updatedTask: Task = {
+      ...reasonDialog.task,
+      startDate: reasonDialog.newDates.start,
+      dueDate: reasonDialog.newDates.end,
+      updatedAt: new Date(),
+      // Add movement history for tracking
+      movementHistory: [
+        ...(reasonDialog.task.movementHistory || []),
+        {
+          id: Date.now().toString(),
+          timestamp: new Date(),
+          reason: reasonDialog.reason.trim(),
+          originalStartDate: reasonDialog.originalDates!.start,
+          originalEndDate: reasonDialog.originalDates!.end,
+          newStartDate: reasonDialog.newDates.start,
+          newEndDate: reasonDialog.newDates.end,
+          movedBy: "Current User" // In real app, this would be the logged-in user
+        }
+      ]
+    }
+
+    onTaskUpdate(updatedTask, reasonDialog.reason.trim())
+
+    setReasonDialog({
+      isOpen: false,
+      task: null,
+      originalDates: null,
+      newDates: null,
+      reason: ""
+    })
+  }
+
+  const handleReasonCancel = () => {
+    setReasonDialog({
+      isOpen: false,
+      task: null,
+      originalDates: null,
+      newDates: null,
+      reason: ""
+    })
+  }
+
   return (
     <div className="relative border rounded-lg bg-card text-card-foreground shadow-sm h-[600px] overflow-hidden">
             {/* Main Content - Single scroll container */}
       <div
         className="absolute inset-0 overflow-auto"
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp} // Handle mouse leaving the container
       >
         <div className="relative" style={{ width: `${SIDE_PANEL_WIDTH_PX + timelineWidth}px` }}>
           {/* Timeline Headers Row - Sticky at top, scrolls horizontally with content */}
@@ -260,45 +422,80 @@ export function GanttTimeline({ tasks, viewStartDate, viewEndDate }: GanttTimeli
                       style={{ width: `${timelineWidth}px` }}
                   >
                     {duration > 0 && startDayIndex < totalDays && startDayIndex >= 0 && (
-                      <TooltipProvider delayDuration={100}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div
-                              className={cn(
-                                "absolute h-7 my-auto rounded-sm flex items-center px-2 text-white text-xs cursor-pointer shadow-sm hover:shadow-md transition-all",
-                                TASK_COLORS[taskIndex % TASK_COLORS.length],
-                              )}
-                              style={{
-                                top: `calc((${ROW_HEIGHT_PX}px - 28px) / 2)`,
-                                left: `${startDayIndex * DAY_WIDTH_PX + 2}px`,
-                                width: `${duration * DAY_WIDTH_PX - 4}px`,
-                              }}
-                            >
-                              <span className="truncate">{task.title}</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="p-1 space-y-1">
-                              <p className="font-bold">{task.title}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {format(task.startDate!, "MMM d")} - {format(task.dueDate!, "MMM d, yyyy")}
-                              </p>
-                              <div className="flex items-center gap-2">
-                                <Badge variant={task.priority === "high" ? "destructive" : "secondary"}>
-                                  {task.priority}
-                                </Badge>
-                                {task.category && <Badge variant="outline">{task.category}</Badge>}
+                      <>
+                        {/* Original Position Trail (only show when dragging this task) */}
+                        {dragState.isDragging && dragState.task?.id === task.id && (
+                          <div
+                            className="absolute h-7 my-auto rounded-sm border-2 border-gray-400 border-dashed bg-gray-200/50"
+                            style={{
+                              top: `calc((${ROW_HEIGHT_PX}px - 28px) / 2)`,
+                              left: `${dragState.originalStartIndex * DAY_WIDTH_PX + 2}px`,
+                              width: `${(dragState.originalEndIndex - dragState.originalStartIndex + 1) * DAY_WIDTH_PX - 4}px`,
+                            }}
+                          />
+                        )}
+                        
+                        {/* Task Bar */}
+                        <TooltipProvider delayDuration={100}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className={cn(
+                                  "absolute h-7 my-auto rounded-sm flex items-center px-2 text-white text-xs shadow-sm hover:shadow-md transition-all",
+                                  TASK_COLORS[taskIndex % TASK_COLORS.length],
+                                  dragState.isDragging && dragState.task?.id === task.id 
+                                    ? "cursor-grabbing opacity-80 z-50" 
+                                    : "cursor-grab hover:scale-105"
+                                )}
+                                style={{
+                                  top: `calc((${ROW_HEIGHT_PX}px - 28px) / 2)`,
+                                  left: `${(dragState.isDragging && dragState.task?.id === task.id 
+                                    ? dragState.currentStartIndex 
+                                    : startDayIndex) * DAY_WIDTH_PX + 2}px`,
+                                  width: `${duration * DAY_WIDTH_PX - 4}px`,
+                                }}
+                                onMouseDown={(e) => handleTaskMouseDown(e, task)}
+                              >
+                                <span className="truncate">{task.title}</span>
+                                {task.movementHistory && task.movementHistory.length > 0 && (
+                                  <span className="ml-1 text-xs">📅</span>
+                                )}
                               </div>
-                              {task.assignee && (
-                                <div className="flex items-center gap-2 pt-1 border-t mt-1">
-                                  <User className="w-4 h-4" />
-                                  <span>{task.assignee}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="p-1 space-y-1">
+                                <p className="font-bold">{task.title}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {format(task.startDate!, "MMM d")} - {format(task.dueDate!, "MMM d, yyyy")}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={task.priority === "high" ? "destructive" : "secondary"}>
+                                    {task.priority}
+                                  </Badge>
+                                  {task.category && <Badge variant="outline">{task.category}</Badge>}
                                 </div>
-                              )}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                                {task.assignee && (
+                                  <div className="flex items-center gap-2 pt-1 border-t mt-1">
+                                    <User className="w-4 h-4" />
+                                    <span>{task.assignee}</span>
+                                  </div>
+                                )}
+                                {task.movementHistory && task.movementHistory.length > 0 && (
+                                  <div className="pt-1 border-t mt-1">
+                                    <p className="text-xs font-medium">Last moved:</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {format(task.movementHistory[task.movementHistory.length - 1].timestamp, "MMM d, yyyy")}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Reason: {task.movementHistory[task.movementHistory.length - 1].reason}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </>
                     )}
                   </div>
                 </div>
@@ -324,6 +521,73 @@ export function GanttTimeline({ tasks, viewStartDate, viewEndDate }: GanttTimeli
           )}
           </div>
       </div>
+      
+      {/* Task Movement Reason Dialog */}
+      <Dialog open={reasonDialog.isOpen} onOpenChange={handleReasonCancel}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reason for Task Movement</DialogTitle>
+          </DialogHeader>
+          
+          {reasonDialog.task && reasonDialog.originalDates && reasonDialog.newDates && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h4 className="font-medium">{reasonDialog.task.title}</h4>
+                <div className="text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Original:</span>
+                    <span>
+                      {format(reasonDialog.originalDates.start, "MMM d")} - {format(reasonDialog.originalDates.end, "MMM d, yyyy")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">New:</span>
+                    <span className="font-medium">
+                      {format(reasonDialog.newDates.start, "MMM d")} - {format(reasonDialog.newDates.end, "MMM d, yyyy")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Change:</span>
+                    <span className={
+                      differenceInDays(reasonDialog.newDates.start, reasonDialog.originalDates.start) > 0 
+                        ? "text-orange-600" 
+                        : "text-green-600"
+                    }>
+                      {differenceInDays(reasonDialog.newDates.start, reasonDialog.originalDates.start) > 0 ? "+" : ""}
+                      {differenceInDays(reasonDialog.newDates.start, reasonDialog.originalDates.start)} days
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Reason for movement <span className="text-red-500">*</span>
+                </label>
+                <Textarea
+                  value={reasonDialog.reason}
+                  onChange={(e) => setReasonDialog(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="e.g., Delayed due to material delivery, Completed ahead of schedule, Client requested change..."
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={handleReasonCancel}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleReasonSubmit}
+              disabled={!reasonDialog.reason.trim()}
+            >
+              Update Task
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

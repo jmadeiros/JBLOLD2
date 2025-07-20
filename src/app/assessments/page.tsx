@@ -363,16 +363,16 @@ export default function AssessmentsPage() {
                           </Badge>
 
                           <div className="flex gap-2">
-                            <Link href={`/assessments/${assessment.id}`}>
+                            <Link href={`/team/${assessment.tradespersonId}`}>
                               <Button variant="outline" size="sm">
                                 <Eye className="h-4 w-4 mr-2" />
-                                View
+                                View Team Member
                               </Button>
                             </Link>
-                            <Link href={`/assessments/${assessment.id}/edit`}>
+                            <Link href={`/assessments/new?tradesperson=${assessment.tradespersonId}`}>
                               <Button variant="outline" size="sm">
                                 <Edit className="h-4 w-4 mr-2" />
-                                Edit
+                                Weekly Assessment
                               </Button>
                             </Link>
                           </div>

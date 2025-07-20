@@ -20,14 +20,17 @@ interface TaskDialogProps {
   isOpen: boolean
   onClose: () => void
   onSave: (task: Omit<Task, "id" | "createdAt" | "updatedAt">) => void
+  mode?: "view" | "edit"
+  specificDate?: Date // For daily completion tracking in weekly view
 }
 
 interface TaskDetailsViewProps {
   task: Task
   onSave: (task: Omit<Task, "id" | "createdAt" | "updatedAt">) => void
+  specificDate?: Date // For daily completion tracking
 }
 
-function TaskDetailsView({ task, onSave }: TaskDetailsViewProps) {
+function TaskDetailsView({ task, onSave, specificDate }: TaskDetailsViewProps) {
   const [isAssessing, setIsAssessing] = useState(false)
   const [assessedWorker, setAssessedWorker] = useState("")
   const [assessment, setAssessment] = useState({
@@ -60,13 +63,83 @@ function TaskDetailsView({ task, onSave }: TaskDetailsViewProps) {
 
   // Quick completion toggle handler
   const handleToggleCompletion = () => {
-    const updatedTask = {
-      ...task,
-      completed: !task.completed,
-      status: (!task.completed ? "done" : "todo") as Task["status"],
-      updatedAt: new Date()
+    if (!task) return
+    
+    // Check if this is a multi-day task and we have a specific date
+    const isMultiDay = task.startDate && task.dueDate && 
+      task.startDate.toDateString() !== task.dueDate.toDateString()
+    
+    let updatedTask: Omit<Task, "id" | "createdAt" | "updatedAt">
+    
+    if (isMultiDay && specificDate) {
+      // Handle daily completion for multi-day tasks
+      const dateKey = specificDate.toISOString().split('T')[0]
+      const currentDailyCompletions = task.dailyCompletions || {}
+      const isCurrentlyCompleted = currentDailyCompletions[dateKey]?.completed || false
+      
+      updatedTask = {
+        ...task,
+        dailyCompletions: {
+          ...currentDailyCompletions,
+          [dateKey]: {
+            completed: !isCurrentlyCompleted,
+            completedBy: "Current User", // In real app, this would be the logged-in user
+            completedAt: !isCurrentlyCompleted ? new Date() : undefined,
+            notes: ""
+          }
+        }
+      }
+      
+      // Only mark the entire task as completed if all days are completed
+      if (!isCurrentlyCompleted) {
+        // Check if all days in the range are now completed
+        const allDaysCompleted = checkAllDaysCompleted(task, updatedTask.dailyCompletions)
+        if (allDaysCompleted) {
+          updatedTask.completed = true
+          updatedTask.status = "done"
+        }
+      } else {
+        // If we're uncompleting a day, the entire task is not completed
+        updatedTask.completed = false
+        updatedTask.status = "in-progress"
+      }
+    } else {
+      // Handle regular single-day task completion
+      updatedTask = {
+        ...task,
+        completed: !task.completed,
+        status: (!task.completed ? "done" : "todo") as Task["status"]
+      }
     }
+    
     onSave(updatedTask)
+  }
+  
+  // Helper function to check if all days in a task range are completed
+  const checkAllDaysCompleted = (task: Task, dailyCompletions: typeof task.dailyCompletions): boolean => {
+    if (!task.startDate || !task.dueDate || !dailyCompletions) return false
+    
+    const start = new Date(task.startDate)
+    const end = new Date(task.dueDate)
+    const current = new Date(start)
+    
+    while (current <= end) {
+      const dateKey = current.toISOString().split('T')[0]
+      if (!dailyCompletions[dateKey]?.completed) {
+        return false
+      }
+      current.setDate(current.getDate() + 1)
+    }
+    
+    return true
+  }
+  
+  // Helper function to check if a specific day is completed
+  const isDayCompleted = (task: Task, date: Date): boolean => {
+    if (!task.dailyCompletions) return task.completed
+    
+    const dateKey = date.toISOString().split('T')[0]
+    return task.dailyCompletions[dateKey]?.completed || false
   }
 
   useEffect(() => {
@@ -126,23 +199,35 @@ function TaskDetailsView({ task, onSave }: TaskDetailsViewProps) {
               {task.priority.toUpperCase()}
             </Badge>
             <Badge className={getStatusColor(task.status)}>
-              {task.status === "in-progress" ? "In Progress" : 
-               task.status === "todo" ? "To Do" :
-               task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+              {task.status.replace('-', ' ').toUpperCase()}
             </Badge>
-            {task.completed && (
-              <Badge className="bg-green-100 text-green-800">
-                ✓ COMPLETED
+            {task.movementHistory && task.movementHistory.length > 0 && (
+              <Badge variant="outline" className="text-xs">
+                📅 Moved {task.movementHistory.length}x
               </Badge>
             )}
           </div>
           <Button
             onClick={handleToggleCompletion}
-            variant={task.completed ? "outline" : "default"}
+            variant={
+              (specificDate ? isDayCompleted(task, specificDate) : task.completed) 
+                ? "outline" 
+                : "default"
+            }
             size="sm"
-            className={task.completed ? "text-gray-600" : "bg-green-600 hover:bg-green-700"}
+            className={
+              (specificDate ? isDayCompleted(task, specificDate) : task.completed)
+                ? "text-gray-600" 
+                : "bg-green-600 hover:bg-green-700"
+            }
           >
-            {task.completed ? "Mark Incomplete" : "Mark Complete"}
+            {specificDate && task.startDate && task.dueDate && 
+             task.startDate.toDateString() !== task.dueDate.toDateString() 
+              ? (isDayCompleted(task, specificDate) 
+                  ? `Mark ${format(specificDate, "MMM d")} Incomplete` 
+                  : `Mark ${format(specificDate, "MMM d")} Complete`)
+              : (task.completed ? "Mark Incomplete" : "Mark Complete")
+            }
           </Button>
         </div>
 
@@ -364,7 +449,7 @@ function TaskDetailsView({ task, onSave }: TaskDetailsViewProps) {
   )
 }
 
-export function TaskDialog({ task, isOpen, onClose, onSave }: TaskDialogProps) {
+export function TaskDialog({ task, isOpen, onClose, onSave, mode = "edit", specificDate }: TaskDialogProps) {
   const [isEditMode, setIsEditMode] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -544,7 +629,7 @@ export function TaskDialog({ task, isOpen, onClose, onSave }: TaskDialogProps) {
 
         {task && !isEditMode ? (
           // View mode - show task details and assessment
-          <TaskDetailsView task={task} onSave={onSave} />
+          <TaskDetailsView task={task} onSave={onSave} specificDate={specificDate} />
         ) : (
           // Edit mode - show edit form
         <div className="space-y-6">

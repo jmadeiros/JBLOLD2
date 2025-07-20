@@ -42,6 +42,7 @@ import Link from "next/link"
 import type { Task } from "../../../../types/task"
 import { TaskDialog } from "../../../components/task-dialog"
 import { GanttTimeline } from "../../../components/gantt-timeline"
+import { toast } from "sonner"
 
 // Project interface
 interface Project {
@@ -673,6 +674,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   }, [])
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false)
+  const [taskDialogDate, setTaskDialogDate] = useState<Date | undefined>(undefined) // For daily completion tracking
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
   const [draggedMember, setDraggedMember] = useState<TeamMember | null>(null)
   const [dragOverTask, setDragOverTask] = useState<string | null>(null)
@@ -776,13 +778,53 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     return allTeamMembers.filter(member => member.name === selectedMemberFilter)
   }, [selectedMemberFilter])
 
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = (task: Task, specificDate?: Date) => {
     setSelectedTask(task)
+    setTaskDialogDate(specificDate)
     setIsTaskDialogOpen(true)
   }
 
   const handleUpdateTask = (updatedTask: Task) => {
     setTasks(prev => prev.map(task => task.id === updatedTask.id ? updatedTask : task))
+  }
+
+  // Handle task updates from Gantt timeline drag-and-drop
+  const handleGanttTaskUpdate = (updatedTask: Task, reason: string) => {
+    console.log('📅 Gantt task moved:', {
+      taskId: updatedTask.id,
+      taskTitle: updatedTask.title,
+      reason,
+      newDates: {
+        start: updatedTask.startDate?.toISOString().split('T')[0],
+        end: updatedTask.dueDate?.toISOString().split('T')[0]
+      }
+    })
+    
+    // Update the task in the local state
+    setTasks(prev => prev.map(task => task.id === updatedTask.id ? updatedTask : task))
+    
+    // Update localStorage for persistence
+    try {
+      const importedTasks = localStorage.getItem('importedTasks')
+      if (importedTasks) {
+        const parsed = JSON.parse(importedTasks)
+        const updatedTasks = parsed.map((task: Task) => 
+          task.id === updatedTask.id ? updatedTask : task
+        )
+        localStorage.setItem('importedTasks', JSON.stringify(updatedTasks))
+        console.log('💾 Updated task saved to localStorage')
+      }
+    } catch (error) {
+      console.error('❌ Failed to update task in localStorage:', error)
+    }
+    
+    // Show success message
+    console.log(`✅ Task "${updatedTask.title}" moved successfully. Reason: ${reason}`)
+    
+    // Show toast notification
+    toast.success(`Task moved successfully`, {
+      description: `"${updatedTask.title}" has been rescheduled. Reason: ${reason}`
+    })
   }
 
   const handleCreateTask = () => {
@@ -816,6 +858,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     setNewTaskStartDate("")
     setNewTaskDueDate("")
     setIsCreateTaskOpen(false)
+  }
+
+  // Helper function to check if a specific day is completed for a task
+  const isDayCompleted = (task: Task, date: Date): boolean => {
+    // For multi-day tasks, check daily completions
+    if (task.startDate && task.dueDate && 
+        task.startDate.toDateString() !== task.dueDate.toDateString() &&
+        task.dailyCompletions) {
+      const dateKey = date.toISOString().split('T')[0]
+      return task.dailyCompletions[dateKey]?.completed || false
+    }
+    
+    // For single-day tasks, use the overall completion status
+    return task.completed
   }
 
   const navigateWeek = (direction: "prev" | "next") => {
@@ -1168,25 +1224,26 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               const isTaskStartDay = day.toDateString() === taskStart.toDateString()
                               const isTaskEndDay = day.toDateString() === taskEnd.toDateString()
                               const isMultiDay = taskStart.toDateString() !== taskEnd.toDateString()
+                              const isDayComplete = isDayCompleted(task, day)
                               
                               return (
                                 <div
                                   key={task.id}
                                   className={`p-3 rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow relative ${
                                     dragOverTask === task.id ? 'border-blue-500 bg-blue-50 border-2' : 'hover:bg-blue-50'
-                                  } ${task.completed ? 'bg-gray-100 opacity-75' : 'bg-white'}`}
-                                  onClick={() => handleTaskClick(task)}
+                                  } ${isDayComplete ? 'bg-gray-100 opacity-75' : 'bg-white'}`}
+                                  onClick={() => handleTaskClick(task, day)}
                                   onDragOver={(e) => handleTaskDragOver(e, task.id)}
                                   onDragLeave={handleTaskDragLeave}
                                   onDrop={(e) => handleTaskDrop(e, task)}
                                 >
                                   {/* Header with Title and Priority */}
                                   <div className="flex items-start justify-between mb-2">
-                                    <h4 className={`font-semibold text-sm leading-tight ${task.completed ? 'line-through text-gray-500' : ''}`}>
-                                      {task.completed && <span className="text-green-600 mr-1">✓</span>}
+                                    <h4 className={`font-semibold text-sm leading-tight ${isDayComplete ? 'line-through text-gray-500' : ''}`}>
+                                      {isDayComplete && <span className="text-green-600 mr-1">✓</span>}
                                       {task.title}
                                       {isMultiDay && (
-                                        <div className={`text-xs font-normal mt-1 ${task.completed ? 'text-gray-400' : 'text-blue-600'}`}>
+                                        <div className={`text-xs font-normal mt-1 ${isDayComplete ? 'text-gray-400' : 'text-blue-600'}`}>
                                           {format(taskStart, 'MMM d')} - {format(taskEnd, 'MMM d')}
                                           {isTaskStartDay && " (START)"}
                                           {isTaskEndDay && " (END)"}
@@ -1198,14 +1255,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                       task.priority === "high" ? "bg-red-100 text-red-800" :
                                       task.priority === "medium" ? "bg-yellow-100 text-yellow-800" :
                                       "bg-green-100 text-green-800"
-                                    } ${task.completed ? 'opacity-60' : ''}`}>
+                                    } ${isDayComplete ? 'opacity-60' : ''}`}>
                                       {task.priority.toUpperCase()}
                                     </Badge>
                                   </div>
 
                                   {/* Description */}
                                   {task.description && (
-                                    <p className={`text-xs mb-2 line-clamp-2 ${task.completed ? 'text-gray-400 line-through' : 'text-muted-foreground'}`}>
+                                    <p className={`text-xs mb-2 line-clamp-2 ${isDayComplete ? 'text-gray-400 line-through' : 'text-muted-foreground'}`}>
                                       {task.description}
                                     </p>
                                   )}
@@ -1214,20 +1271,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                   {task.tags && task.tags.length > 0 && (
                                     <div className="flex gap-1 mb-2 flex-wrap">
                                       {task.tags.slice(0, 3).map(tag => (
-                                        <Badge key={tag} variant="outline" className={`text-xs px-1 py-0 ${task.completed ? 'opacity-50' : ''}`}>
+                                        <Badge key={tag} variant="outline" className={`text-xs px-1 py-0 ${isDayComplete ? 'opacity-50' : ''}`}>
                                           {tag}
                                         </Badge>
                                       ))}
                                       {task.tags.length > 3 && (
-                                        <span className={`text-xs ${task.completed ? 'text-gray-400' : 'text-muted-foreground'}`}>+{task.tags.length - 3}</span>
+                                        <span className={`text-xs ${isDayComplete ? 'text-gray-400' : 'text-muted-foreground'}`}>+{task.tags.length - 3}</span>
                                       )}
                                     </div>
                                   )}
 
                                   {/* Bottom Row: Assignee only */}
                                   <div className="flex items-center gap-1">
-                                    <Users className={`h-3 w-3 ${task.completed ? 'text-gray-400' : 'text-muted-foreground'}`} />
-                                    <span className={`text-xs truncate ${task.completed ? 'text-gray-400' : 'text-muted-foreground'}`}>
+                                    <Users className={`h-3 w-3 ${isDayComplete ? 'text-gray-400' : 'text-muted-foreground'}`} />
+                                    <span className={`text-xs truncate ${isDayComplete ? 'text-gray-400' : 'text-muted-foreground'}`}>
                                       {task.assignee || "Unassigned"}
                                     </span>
                                   </div>
@@ -1366,6 +1423,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 })()} 
                 viewStartDate={new Date(2020, 8, 1)} // September 2020
                 viewEndDate={new Date(2026, 11, 31)} // December 2026
+                onTaskUpdate={handleGanttTaskUpdate}
               />
             </div>
           )}
@@ -1376,9 +1434,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       <TaskDialog
          task={selectedTask}
          isOpen={isTaskDialogOpen}
+         mode="view"
+         specificDate={taskDialogDate}
          onClose={() => {
            setIsTaskDialogOpen(false)
            setSelectedTask(null)
+           setTaskDialogDate(undefined)
          }}
         onSave={(taskData) => {
            if (selectedTask) {

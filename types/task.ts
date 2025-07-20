@@ -68,6 +68,28 @@ export interface Task {
     notes?: string
   }[]
   
+  // Task Movement History (for Gantt timeline tracking)
+  movementHistory?: {
+    id: string
+    timestamp: Date
+    reason: string
+    originalStartDate: Date
+    originalEndDate: Date
+    newStartDate: Date
+    newEndDate: Date
+    movedBy: string
+  }[]
+  
+  // Daily Completion Tracking (for multi-day tasks in weekly view)
+  dailyCompletions?: {
+    [dateString: string]: {
+      completed: boolean
+      completedBy?: string
+      completedAt?: Date
+      notes?: string
+    }
+  }
+  
   supervisorApproval?: {
     approvedBy: string
     approvedAt: Date

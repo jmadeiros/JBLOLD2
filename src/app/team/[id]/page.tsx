@@ -521,6 +521,96 @@ export default function TeamMemberProfilePage({ params }: TeamMemberProfilePageP
             </CardContent>
           </Card>
 
+          {/* Weekly Assessments */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5" />
+                Weekly Assessments
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {assessments.length > 0 ? (
+                <div className="space-y-4">
+                  {assessments.slice(0, 3).map((assessment) => (
+                    <div key={assessment.id} className="p-4 border rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h4 className="font-medium">Week ending {new Date(assessment.weekEndingDate).toLocaleDateString()}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Assessed by Supervisor
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-2xl font-bold ${
+                            assessment.overallScore >= 8.5 ? "text-green-600" :
+                            assessment.overallScore >= 7.0 ? "text-blue-600" :
+                            assessment.overallScore >= 5.5 ? "text-yellow-600" :
+                            "text-red-600"
+                          }`}>
+                            {assessment.overallScore.toFixed(1)}
+                          </div>
+                          <Badge className={`text-xs ${
+                            assessment.overallScore >= 8.5 ? "bg-green-100 text-green-800" :
+                            assessment.overallScore >= 7.0 ? "bg-blue-100 text-blue-800" :
+                            assessment.overallScore >= 5.5 ? "bg-yellow-100 text-yellow-800" :
+                            "bg-red-100 text-red-800"
+                          }`}>
+                            {assessment.overallScore >= 8.5 ? "Excellent" :
+                             assessment.overallScore >= 7.0 ? "Good" :
+                             assessment.overallScore >= 5.5 ? "Fair" : "Needs Improvement"}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      {/* Performance metrics grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div className="text-center">
+                          <div className="font-medium">{assessment.scores.punctuality}/10</div>
+                          <div className="text-muted-foreground">Punctuality</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-medium">{assessment.scores.workQuality}/10</div>
+                          <div className="text-muted-foreground">Quality</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-medium">{assessment.scores.safety}/10</div>
+                          <div className="text-muted-foreground">Safety</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-medium">{assessment.scores.teamwork}/10</div>
+                          <div className="text-muted-foreground">Teamwork</div>
+                        </div>
+                      </div>
+                      
+                      {assessment.notes && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-sm text-muted-foreground">
+                            <strong>Notes:</strong> {assessment.notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {assessments.length > 3 && (
+                    <div className="text-center pt-2">
+                      <Button variant="outline" size="sm">
+                        View All Assessments ({assessments.length})
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No weekly assessments yet</p>
+                  <p className="text-sm">Assessments will appear here once they're completed</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Skills & Certifications</CardTitle>
