@@ -18,6 +18,7 @@ import {
   DialogTitle, 
   DialogFooter 
 } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { 
   ArrowLeft, 
   Plus, 
@@ -42,7 +43,10 @@ import Link from "next/link"
 import type { Task } from "../../../../types/task"
 import { TaskDialog } from "../../../components/task-dialog"
 import { GanttTimeline } from "../../../components/gantt-timeline"
+import { MonthlyCalendar } from "../../../components/monthly-calendar"
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 // Project interface
 interface Project {
@@ -439,6 +443,108 @@ const allTasks: Task[] = [
     category: "Site Work"
   },
   {
+    id: "admin-1",
+    title: "Building Permit Renewal",
+    description: "Submit application for building permit renewal with city council",
+    completed: false,
+    priority: "high",
+    status: "todo",
+    startDate: new Date(2025, 0, 15), // January 15
+    dueDate: new Date(2025, 0, 15), // January 15
+    assignee: "Project Manager",
+    tags: ["admin", "permit", "compliance"],
+    createdAt: new Date(2024, 11, 22),
+    updatedAt: new Date(2024, 11, 25),
+    projectId: "1",
+    projectName: "London Office Tower",
+    category: "Procurement"
+  },
+  {
+    id: "admin-2",
+    title: "Safety Training Session",
+    description: "Mandatory safety training for all new workers on site",
+    completed: false,
+    priority: "high",
+    status: "todo",
+    startDate: new Date(2025, 0, 20), // January 20
+    dueDate: new Date(2025, 0, 20), // January 20
+    assignee: "Safety Officer",
+    tags: ["admin", "safety", "training"],
+    createdAt: new Date(2024, 11, 22),
+    updatedAt: new Date(2024, 11, 25),
+    projectId: "1",
+    projectName: "London Office Tower",
+    category: "Safety"
+  },
+  {
+    id: "milestone-1",
+    title: "Foundation Completion Milestone",
+    description: "Complete foundation work and obtain inspection approval",
+    completed: true,
+    priority: "high",
+    status: "done",
+    startDate: new Date(2025, 0, 5), // January 5
+    dueDate: new Date(2025, 0, 5), // January 5
+    assignee: "Site Supervisor",
+    tags: ["milestone", "critical", "foundation"],
+    createdAt: new Date(2024, 11, 22),
+    updatedAt: new Date(2024, 11, 25),
+    projectId: "1",
+    projectName: "London Office Tower",
+    category: "Structural"
+  },
+  {
+    id: "milestone-2",
+    title: "Structural Frame Milestone",
+    description: "Complete steel frame construction for floors 1-5",
+    completed: false,
+    priority: "high",
+    status: "in-progress",
+    startDate: new Date(2025, 1, 1), // February 1
+    dueDate: new Date(2025, 1, 15), // February 15
+    assignee: "Structural Team Lead",
+    tags: ["milestone", "critical", "structural"],
+    createdAt: new Date(2024, 11, 22),
+    updatedAt: new Date(2024, 11, 25),
+    projectId: "1",
+    projectName: "London Office Tower",
+    category: "Structural"
+  },
+  {
+    id: "admin-3",
+    title: "Environmental Impact Report",
+    description: "Submit quarterly environmental impact assessment to authorities",
+    completed: false,
+    priority: "medium",
+    status: "todo",
+    startDate: new Date(2025, 0, 30), // January 30
+    dueDate: new Date(2025, 0, 30), // January 30
+    assignee: "Environmental Consultant",
+    tags: ["admin", "compliance", "environmental"],
+    createdAt: new Date(2024, 11, 22),
+    updatedAt: new Date(2024, 11, 25),
+    projectId: "1",
+    projectName: "London Office Tower",
+    category: "Procurement"
+  },
+  {
+    id: "admin-4",
+    title: "Material Delivery Inspection",
+    description: "Quality inspection of incoming steel beams and concrete materials",
+    completed: false,
+    priority: "high",
+    status: "todo",
+    startDate: new Date(2025, 0, 12), // January 12
+    dueDate: new Date(2025, 0, 12), // January 12
+    assignee: "Quality Control Inspector",
+    tags: ["admin", "inspection", "quality"],
+    createdAt: new Date(2024, 11, 22),
+    updatedAt: new Date(2024, 11, 25),
+    projectId: "1",
+    projectName: "London Office Tower",
+    category: "Procurement"
+  },
+  {
     id: "11",
     title: "HVAC Installation - Zone B",
     description: "Install HVAC units and ductwork for Zone B area.",
@@ -679,7 +785,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [draggedMember, setDraggedMember] = useState<TeamMember | null>(null)
   const [dragOverTask, setDragOverTask] = useState<string | null>(null)
   const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>("all")
-  const [viewMode, setViewMode] = useState<"schedule" | "gantt">("schedule")
+  const [viewMode, setViewMode] = useState<"schedule" | "gantt" | "calendar">("schedule")
   
   // Task creation form state
   const [newTaskTitle, setNewTaskTitle] = useState("")
@@ -1141,18 +1247,77 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 >
                   Gantt Timeline
                 </Button>
+                <Button 
+                  variant={viewMode === "calendar" ? "default" : "ghost"} 
+                  size="sm" 
+                  onClick={() => setViewMode("calendar")}
+                  className="text-xs"
+                >
+                  30-Day Calendar
+                </Button>
               </div>
               {viewMode === "schedule" && (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm font-medium min-w-[200px] text-center">
-                  {format(currentWeek, "MMM d")} - {format(addDays(currentWeek, 4), "MMM d, yyyy")} (Mon-Fri)
-                </span>
-                <Button variant="outline" size="sm" onClick={() => navigateWeek("next")}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+              <div className="flex items-center justify-between gap-4 p-3 bg-muted/50 rounded-lg border">
+                {/* Week Navigation */}
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")} className="h-8 w-8 p-0">
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center gap-2 min-w-[280px] justify-center">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-semibold text-foreground">
+                      {format(currentWeek, "MMM d")} - {format(addDays(currentWeek, 4), "MMM d, yyyy")}
+                    </span>
+                    <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                      Mon-Fri
+                    </Badge>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigateWeek("next")} className="h-8 w-8 p-0">
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Date Jump Controls */}
+                <div className="flex items-center gap-2 bg-background rounded-md border px-3 py-1.5">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-medium text-muted-foreground">Jump to:</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-[135px] h-7 text-xs justify-start text-left font-normal border-muted-foreground/20",
+                            !currentWeek && "text-muted-foreground"
+                          )}
+                        >
+                          <Calendar className="mr-2 h-3 w-3" />
+                          {currentWeek ? format(currentWeek, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <ShadcnCalendar
+                          mode="single"
+                          selected={currentWeek}
+                          onSelect={(date) => {
+                            if (date) {
+                              setCurrentWeek(startOfWeek(date, { weekStartsOn: 1 }))
+                            }
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="w-px h-4 bg-border"></div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+                    className="h-7 px-2 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    Today
+                  </Button>
+                </div>
               </div>
               )}
             </div>
@@ -1395,7 +1560,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </Card>
             </div>
           </div>
-          ) : (
+          ) : viewMode === "gantt" ? (
             /* Gantt Timeline View */
             <div className="bg-white rounded-lg border">
               <GanttTimeline 
@@ -1424,6 +1589,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 viewStartDate={new Date(2020, 8, 1)} // September 2020
                 viewEndDate={new Date(2026, 11, 31)} // December 2026
                 onTaskUpdate={handleGanttTaskUpdate}
+              />
+            </div>
+          ) : (
+            /* 30-Day Calendar View */
+            <div className="bg-white rounded-lg">
+              <MonthlyCalendar 
+                tasks={tasks.filter(task => task.projectId === project?.id)}
+                onTaskClick={(task) => {
+                  setSelectedTask(task)
+                  setTaskDialogDate(task.dueDate || new Date())
+                  setIsTaskDialogOpen(true)
+                }}
               />
             </div>
           )}

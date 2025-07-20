@@ -181,10 +181,14 @@ export function GanttTimeline({ tasks, viewStartDate, viewEndDate, onTaskUpdate 
   const handleTaskMouseDown = (e: React.MouseEvent, task: Task) => {
     if (!task.startDate || !task.dueDate) return
 
+    const container = e.currentTarget.closest('.overflow-auto');
+    if (!container) return;
+
     const startDayIndex = differenceInDays(task.startDate, viewStartDate)
     const endDayIndex = differenceInDays(task.dueDate, viewStartDate)
     
     const rect = e.currentTarget.getBoundingClientRect()
+    // The key fix: subtract the container's left edge and add scrollLeft
     const offset = {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top
@@ -207,8 +211,8 @@ export function GanttTimeline({ tasks, viewStartDate, viewEndDate, onTaskUpdate 
 
     const container = e.currentTarget
     const rect = container.getBoundingClientRect()
-    const timelineStart = SIDE_PANEL_WIDTH_PX
-    const relativeX = e.clientX - rect.left - timelineStart - dragState.offset.x
+    // Correct calculation: use clientX relative to the container and factor in scroll
+    const relativeX = e.clientX - rect.left + container.scrollLeft - SIDE_PANEL_WIDTH_PX - dragState.offset.x
     
     const newStartIndex = Math.round(relativeX / DAY_WIDTH_PX)
     const clampedStartIndex = Math.max(0, Math.min(newStartIndex, totalDays - 1))
@@ -423,18 +427,19 @@ export function GanttTimeline({ tasks, viewStartDate, viewEndDate, onTaskUpdate 
                   >
                     {duration > 0 && startDayIndex < totalDays && startDayIndex >= 0 && (
                       <>
-                        {/* Original Position Trail (only show when dragging this task) */}
-                        {dragState.isDragging && dragState.task?.id === task.id && (
+                        {/* Task Movement Trail */}
+                        {task.movementHistory && task.movementHistory.length > 0 && (
                           <div
                             className="absolute h-7 my-auto rounded-sm border-2 border-gray-400 border-dashed bg-gray-200/50"
                             style={{
                               top: `calc((${ROW_HEIGHT_PX}px - 28px) / 2)`,
-                              left: `${dragState.originalStartIndex * DAY_WIDTH_PX + 2}px`,
-                              width: `${(dragState.originalEndIndex - dragState.originalStartIndex + 1) * DAY_WIDTH_PX - 4}px`,
+                              left: `${differenceInDays(task.movementHistory[task.movementHistory.length - 1].originalStartDate, viewStartDate) * DAY_WIDTH_PX + 2}px`,
+                              width: `${(differenceInDays(task.movementHistory[task.movementHistory.length - 1].originalEndDate, task.movementHistory[task.movementHistory.length - 1].originalStartDate) + 1) * DAY_WIDTH_PX - 4}px`,
                             }}
+                            title={`Originally from ${format(task.movementHistory[task.movementHistory.length - 1].originalStartDate, "MMM d")} to ${format(task.movementHistory[task.movementHistory.length - 1].originalEndDate, "MMM d")}`}
                           />
                         )}
-                        
+
                         {/* Task Bar */}
                         <TooltipProvider delayDuration={100}>
                           <Tooltip>
