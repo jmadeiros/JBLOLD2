@@ -328,13 +328,13 @@ export function ProjectUpload({
 
   return (
     <>
-      <Card className="h-full">
-        <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5 text-blue-600" />
           Upload & Create New Project
         </CardTitle>
-        </CardHeader>
+      </CardHeader>
       <CardContent className="space-y-4">
         {/* Drag and Drop Area */}
         <div

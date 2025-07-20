@@ -235,6 +235,52 @@ export default function Page() {
   const [filterStatus, setFilterStatus] = useState("all")
   const [viewMode, setViewMode] = useState<"kanban" | "list" | "supervisor">("kanban")
 
+  // Debug function to check localStorage
+  const debugLocalStorage = () => {
+    try {
+      const importedTasks = localStorage.getItem('importedTasks')
+      const latestProject = localStorage.getItem('latestProjectData')
+      console.log('=== DEBUG localStorage ===')
+      console.log('importedTasks:', importedTasks)
+      console.log('latestProjectData:', latestProject)
+      
+      if (importedTasks) {
+        const parsed = JSON.parse(importedTasks)
+        console.log('Parsed imported tasks count:', parsed.length)
+        console.log('First task:', parsed[0])
+      }
+      
+      // Force reload
+      forceLoadImportedTasks()
+    } catch (error) {
+      console.error('Debug localStorage error:', error)
+    }
+  }
+
+  // Force reload imported tasks
+  const forceLoadImportedTasks = () => {
+    try {
+      const importedTasks = JSON.parse(localStorage.getItem('importedTasks') || '[]')
+      console.log('Force loading imported tasks:', importedTasks.length)
+      
+      if (importedTasks.length > 0) {
+        const tasksWithDates = importedTasks.map((task: any) => ({
+          ...task,
+          startDate: task.startDate ? new Date(task.startDate) : undefined,
+          dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+          createdAt: new Date(task.createdAt),
+          updatedAt: new Date(task.updatedAt)
+        }))
+        
+        // Replace all tasks with imported ones
+        setTasks(tasksWithDates)
+        console.log('Tasks set to:', tasksWithDates.length, 'imported tasks')
+      }
+    } catch (error) {
+      console.error('Force load error:', error)
+    }
+  }
+
   // Load imported tasks from localStorage
   useEffect(() => {
     const loadImportedTasks = () => {
@@ -405,6 +451,23 @@ export default function Page() {
                 Clear Filters
               </Button>
             </div>
+            
+            {/* Debug Section */}
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={debugLocalStorage}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                >
+                  🔍 Debug: Check Import Status
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Current tasks: {tasks.length} (Use this if imported tasks don't appear)
+                </span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -481,80 +544,200 @@ export default function Page() {
           </TabsContent>
 
           <TabsContent value="supervisor" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Team Workload */}
+            <div className="space-y-6">
+              {/* Task Completion Control */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <HardHat className="h-5 w-5" />
-                    Team Workload
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    Task Completion Review
                   </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Review and mark tasks as complete or incomplete. Click on a task for details.
+                  </p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {assignees.map(assignee => {
-                      const assigneeTasks = filteredTasks.filter(t => t.assignee === assignee)
-                      const inProgress = assigneeTasks.filter(t => t.status === "in-progress").length
-                      const total = assigneeTasks.length
-                      return (
-                        <div key={assignee} className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="font-medium">{assignee}</span>
-                            <span className="text-sm text-muted-foreground">
-                              {inProgress} active / {total} total
-                            </span>
-                          </div>
-                          <div className="flex gap-1">
-                            {assigneeTasks.map(task => (
-                              <div 
-                                key={task.id}
-                                className={`w-4 h-4 rounded ${getStatusColor(task.status)}`}
-                                title={`${task.title} - ${task.status}`}
-                              />
-                            ))}
+                    {filteredTasks
+                      .filter(t => t.status === "in-progress" || t.status === "review")
+                      .map(task => (
+                        <div key={task.id} className="p-4 border rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h4 className="font-medium">{task.title}</h4>
+                                <Badge variant="outline" className="text-xs">
+                                  {task.projectName}
+                                </Badge>
+                                <Badge variant={task.priority === "high" ? "destructive" : task.priority === "medium" ? "default" : "secondary"} className="text-xs">
+                                  {task.priority}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  {task.assignee}
+                                </span>
+                                {task.dueDate && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    Due: {task.dueDate.toLocaleDateString()}
+                                  </span>
+                                )}
+                                <span className="flex items-center gap-1">
+                                  {getStatusIcon(task.status)}
+                                  {task.status.replace("-", " ")}
+                                </span>
+                              </div>
+                              {task.description && (
+                                <p className="text-sm text-muted-foreground mt-2">{task.description}</p>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-3 ml-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const updatedTask = { ...task, status: "done" as const, completed: true, updatedAt: new Date() }
+                                  handleUpdateTask(updatedTask)
+                                }}
+                                className="text-green-600 hover:bg-green-50 hover:text-green-700 border-green-300"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Mark Complete
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const updatedTask = { ...task, status: "todo" as const, completed: false, updatedAt: new Date() }
+                                  handleUpdateTask(updatedTask)
+                                }}
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-300"
+                              >
+                                <Pause className="h-4 w-4 mr-2" />
+                                Mark Incomplete
+                              </Button>
+                              
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedTask(task)
+                                  setIsDialogOpen(true)
+                                }}
+                              >
+                                View Details
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      )
-                    })}
+                      ))}
+                    
+                    {filteredTasks.filter(t => t.status === "in-progress" || t.status === "review").length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No tasks currently in progress or review.</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Critical Tasks */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
-                    High Priority Tasks
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {filteredTasks
-                      .filter(t => t.priority === "high" && t.status !== "done")
-                      .map(task => (
-                        <div 
-                          key={task.id}
-                          className="p-3 border rounded-lg cursor-pointer hover:bg-muted/50"
-                          onClick={() => {
-                            setSelectedTask(task)
-                            setIsDialogOpen(true)
-                          }}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-medium">{task.title}</h4>
-                              <p className="text-sm text-muted-foreground">{task.assignee}</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Team Workload */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <HardHat className="h-5 w-5" />
+                      Team Workload
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {assignees.map(assignee => {
+                        const assigneeTasks = filteredTasks.filter(t => t.assignee === assignee)
+                        const inProgress = assigneeTasks.filter(t => t.status === "in-progress").length
+                        const completed = assigneeTasks.filter(t => t.status === "done").length
+                        const total = assigneeTasks.length
+                        return (
+                          <div key={assignee} className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="font-medium">{assignee}</span>
+                              <span className="text-sm text-muted-foreground">
+                                {inProgress} active • {completed} done • {total} total
+                              </span>
                             </div>
-                            <Badge variant="destructive" className="text-xs">
-                              {task.priority}
-                            </Badge>
+                            <div className="flex gap-1">
+                              {assigneeTasks.map(task => (
+                                <div 
+                                  key={task.id}
+                                  className={`w-4 h-4 rounded ${getStatusColor(task.status)}`}
+                                  title={`${task.title} - ${task.status}`}
+                                />
+                              ))}
+                            </div>
                           </div>
+                        )
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Critical Tasks */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                      High Priority Tasks
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {filteredTasks
+                        .filter(t => t.priority === "high" && t.status !== "done")
+                        .map(task => (
+                          <div 
+                            key={task.id}
+                            className="p-3 border rounded-lg cursor-pointer hover:bg-muted/50"
+                            onClick={() => {
+                              setSelectedTask(task)
+                              setIsDialogOpen(true)
+                            }}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-medium">{task.title}</h4>
+                                <p className="text-sm text-muted-foreground">{task.assignee}</p>
+                                {task.dueDate && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Due: {task.dueDate.toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <Badge variant="destructive" className="text-xs">
+                                  {task.priority}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {task.status.replace("-", " ")}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      
+                      {filteredTasks.filter(t => t.priority === "high" && t.status !== "done").length === 0 && (
+                        <div className="text-center py-4 text-muted-foreground">
+                          <p className="text-sm">No high priority tasks pending.</p>
                         </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

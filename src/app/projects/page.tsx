@@ -39,8 +39,8 @@ interface Project {
   criticalPathTasks: number
 }
 
-export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([
+// Initial hardcoded projects
+const INITIAL_PROJECTS: Project[] = [
     {
       id: "1",
       name: "London Office Tower",
@@ -155,8 +155,37 @@ export default function ProjectsPage() {
       trades: ["Site Work", "Concrete", "Steel", "Roofing"],
       siteSupervisor: "Carlos Ramirez",
       criticalPathTasks: 6
-    },
-  ])
+    }
+  ]
+
+export default function ProjectsPage() {
+  // Load projects from localStorage or use initial projects
+  const [projects, setProjects] = useState<Project[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedProjects = localStorage.getItem('constructionProjects')
+        if (savedProjects) {
+          const parsed = JSON.parse(savedProjects)
+          return [...parsed, ...INITIAL_PROJECTS.filter(ip => !parsed.find((p: Project) => p.id === ip.id))]
+        }
+      } catch (error) {
+        console.error('Failed to load projects from localStorage:', error)
+      }
+    }
+    return INITIAL_PROJECTS
+  })
+
+  // Save projects to localStorage whenever projects change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const projectsToSave = projects.filter(p => !INITIAL_PROJECTS.find(ip => ip.id === p.id))
+        localStorage.setItem('constructionProjects', JSON.stringify(projectsToSave))
+      } catch (error) {
+        console.error('Failed to save projects to localStorage:', error)
+      }
+    }
+  }, [projects])
 
   // Monitor for new projects created from program uploads
   useEffect(() => {
@@ -213,7 +242,7 @@ export default function ProjectsPage() {
     const interval = setInterval(checkForNewProject, 2000) // Check every 2 seconds
 
     return () => clearInterval(interval)
-  }, [projects])
+  }, []) // Remove projects dependency to avoid infinite re-renders
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -334,12 +363,20 @@ export default function ProjectsPage() {
     localStorage.setItem('latestProjectData', JSON.stringify({
       projectId: newProjectId,
       projectName,
-      taskCount: tasks.length,
+      taskCount: newTasks.length,
       createdAt: new Date().toISOString()
     }))
     
+    // Debug logging
+    console.log('=== IMPORT DEBUG ===')
+    console.log('Existing tasks in localStorage:', existingTasks.length)
+    console.log('New tasks created:', newTasks.length)
+    console.log('Total tasks now in localStorage:', allTasks.length)
+    console.log('First new task:', newTasks[0])
+    console.log('localStorage size:', localStorage.getItem('importedTasks')?.length || 0, 'characters')
+    
     toast.success(`Created new project: ${projectName}`, {
-      description: `${tasks.length} trade tasks imported. Check the Tasks page!`
+      description: `${newTasks.length} trade tasks imported. Check the Tasks page!`
     })
     
     console.log('Generated tasks for new project:', { projectName, projectId: newProjectId, taskCount: newTasks.length })
@@ -515,8 +552,11 @@ export default function ProjectsPage() {
           </Card>
         </div>
 
-        {/* Projects Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 {/* Main Content - Two Column Layout */}
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           {/* Projects Grid - Left Side (2/3 width) */}
+           <div className="lg:col-span-2">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Upload Card */}
           <ProjectUpload 
             onFilesUploaded={handleFilesUploaded}
@@ -616,6 +656,103 @@ export default function ProjectsPage() {
               </Card>
             </Link>
           ))}
+            </div>
+          </div>
+
+                    {/* AI Insights Sidebar - Right Side (1/3 width) */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-6">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <div className="h-6 w-6 bg-orange-500 rounded-full flex items-center justify-center">
+                    <Clock className="h-3 w-3 text-white" />
+                  </div>
+                  AI Insights
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                 {/* Weather Impact */}
+                 <div className="p-3 border rounded-lg">
+                   <div className="flex items-start gap-3">
+                     <span className="text-lg">🌤️</span>
+                     <div className="flex-1">
+                       <div className="font-semibold text-sm text-gray-900 mb-1">Weather Impact</div>
+                       <p className="text-xs text-gray-700 mb-2">
+                         Heavy rain Thursday-Friday affecting 3 sites
+                       </p>
+                       <div className="flex items-center justify-between mb-3">
+                         <Badge variant="secondary" className="bg-black text-white text-xs">High Confidence</Badge>
+                         <span className="text-xs text-orange-600">4 hours ago</span>
+                       </div>
+                       <Button variant="outline" size="sm" className="w-full text-xs">
+                         Review concrete pours
+                       </Button>
+                     </div>
+                   </div>
+                 </div>
+
+                 {/* Top Performer */}
+                 <div className="p-3 border rounded-lg">
+                   <div className="flex items-start gap-3">
+                     <span className="text-lg">✅</span>
+                     <div className="flex-1">
+                       <div className="font-semibold text-sm text-green-800 mb-1">Top Performer</div>
+                       <p className="text-xs text-gray-700 mb-2">
+                         David Chen's team 20% ahead at London Office Tower
+                       </p>
+                       <div className="flex items-center justify-between mb-3">
+                         <Badge variant="secondary" className="bg-black text-white text-xs">High Confidence</Badge>
+                         <span className="text-xs text-green-600">120% efficiency</span>
+                       </div>
+                       <Button variant="outline" size="sm" className="w-full text-xs">
+                         View details
+                       </Button>
+                     </div>
+                   </div>
+                 </div>
+
+                 {/* Behind Schedule */}
+                 <div className="p-3 border rounded-lg">
+                   <div className="flex items-start gap-3">
+                     <span className="text-lg">⚠️</span>
+                     <div className="flex-1">
+                       <div className="font-semibold text-sm text-red-800 mb-1">Behind Schedule</div>
+                       <p className="text-xs text-gray-700 mb-2">
+                         Electrical work at Manchester Complex needs attention
+                       </p>
+                       <div className="flex items-center justify-between mb-3">
+                         <Badge variant="secondary" className="bg-black text-white text-xs">High Confidence</Badge>
+                         <span className="text-xs text-red-600">4 days delayed</span>
+                       </div>
+                       <Button variant="outline" size="sm" className="w-full text-xs">
+                         Adjust timeline
+                       </Button>
+                     </div>
+                   </div>
+                 </div>
+
+                 {/* Material Alert */}
+                 <div className="p-3 border rounded-lg">
+                   <div className="flex items-start gap-3">
+                     <span className="text-lg">🏗️</span>
+                     <div className="flex-1">
+                       <div className="font-semibold text-sm text-blue-800 mb-1">Material Alert</div>
+                       <p className="text-xs text-gray-700 mb-2">
+                         Order steel by Tuesday for M25 Bridge project
+                       </p>
+                       <div className="flex items-center justify-between mb-3">
+                         <Badge variant="secondary" className="bg-black text-white text-xs">High Confidence</Badge>
+                         <span className="text-xs text-blue-600">Save £18,000</span>
+                       </div>
+                       <Button variant="outline" size="sm" className="w-full text-xs">
+                         Order now
+                       </Button>
+                     </div>
+                   </div>
+                 </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </SidebarInset>

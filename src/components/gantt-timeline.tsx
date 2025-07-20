@@ -1,8 +1,8 @@
 "use client"
 
 import React from "react"
-import type { Task } from "../types/task"
-import { useMemo } from "react"
+import type { Task } from "../../types/task"
+import { useMemo, useState } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
@@ -16,7 +16,7 @@ import {
 } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { User } from "lucide-react"
+import { User, ChevronDown, ChevronRight, Users } from "lucide-react"
 
 const getInitials = (name = "") =>
   name
@@ -49,26 +49,26 @@ const nameToColor = (name: string) => {
   if (name.length === 0) return colors[0]
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash)
-    hash = hash & hash
   }
-  const index = Math.abs(hash % colors.length)
-  return colors[index]
+  return colors[Math.abs(hash) % colors.length]
 }
 
-const TASK_COLORS = [
-  "bg-cyan-500",
-  "bg-blue-500",
-  "bg-indigo-500",
-  "bg-purple-500",
-  "bg-sky-500",
-  "bg-blue-600",
-  "bg-indigo-600",
-  "bg-purple-600",
-]
+const DAY_WIDTH_PX = 32
+const ROW_HEIGHT_PX = 48
+const GROUP_HEADER_HEIGHT_PX = 40
+const SIDE_PANEL_WIDTH_PX = 350
+const HEADER_HEIGHT_PX = 80
 
-const DAY_WIDTH_PX = 36
-const ROW_HEIGHT_PX = 40
-const SIDE_PANEL_WIDTH_PX = 300
+const TASK_COLORS = [
+  "bg-blue-500",
+  "bg-green-500",
+  "bg-yellow-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-indigo-500",
+  "bg-red-500",
+  "bg-gray-500",
+]
 
 interface GanttTimelineProps {
   tasks: Task[]
@@ -77,22 +77,33 @@ interface GanttTimelineProps {
 }
 
 export function GanttTimeline({ tasks, viewStartDate, viewEndDate }: GanttTimelineProps) {
-  const projectsWithTasks = useMemo(() => {
-    const projectMap = new Map<string, { id: string; name: string; tasks: Task[] }>()
+  // Group tasks by trade/assignee and manage collapsed state
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+
+  const taskGroups = useMemo(() => {
+    const groupMap = new Map<string, { tasks: Task[]; color: string }>()
+    
     tasks.forEach((task) => {
-      if (task.projectId && task.projectName) {
-        if (!projectMap.has(task.projectId)) {
-          projectMap.set(task.projectId, {
-            id: task.projectId,
-            name: task.projectName,
+      // Group by assignee (trade) or category as fallback
+      const groupKey = task.assignee || task.category || "Unassigned"
+      
+      if (!groupMap.has(groupKey)) {
+        groupMap.set(groupKey, { 
             tasks: [],
+          color: nameToColor(groupKey) 
           })
         }
-        projectMap.get(task.projectId)!.tasks.push(task)
-      }
+      groupMap.get(groupKey)!.tasks.push(task)
     })
-    return Array.from(projectMap.values())
-  }, [tasks])
+
+    return Array.from(groupMap.entries()).map(([name, data]) => ({
+      id: name.replace(/\s+/g, '-').toLowerCase(),
+      name,
+      tasks: data.tasks.sort((a, b) => (a.startDate || new Date(0)).getTime() - (b.startDate || new Date(0)).getTime()),
+      isExpanded: !collapsedGroups.has(name),
+      color: data.color
+    }))
+  }, [tasks, collapsedGroups])
 
   const { days, weeks } = useMemo(() => {
     const days = eachDayOfInterval({ start: viewStartDate, end: viewEndDate })
@@ -113,18 +124,39 @@ export function GanttTimeline({ tasks, viewStartDate, viewEndDate }: GanttTimeli
     ? differenceInDays(today, viewStartDate) * DAY_WIDTH_PX
     : -1
 
+  const toggleGroup = (groupName: string) => {
+    setCollapsedGroups(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(groupName)) {
+        newSet.delete(groupName)
+      } else {
+        newSet.add(groupName)
+      }
+      return newSet
+    })
+  }
+
   return (
-    <div className="relative border rounded-lg overflow-auto bg-card text-card-foreground shadow-sm">
+    <div className="relative border rounded-lg bg-card text-card-foreground shadow-sm h-[600px] overflow-hidden">
+            {/* Main Content - Single scroll container */}
       <div
-        className="grid"
-        style={{ gridTemplateColumns: `${SIDE_PANEL_WIDTH_PX}px minmax(${timelineWidth}px, auto)` }}
+        className="absolute inset-0 overflow-auto"
       >
-        {/* HEADER */}
-        <div className="sticky top-0 left-0 z-30 bg-card border-b border-r">
-          <div className="h-[65px]" />
+        <div className="relative" style={{ width: `${SIDE_PANEL_WIDTH_PX + timelineWidth}px` }}>
+          {/* Timeline Headers Row - Sticky at top, scrolls horizontally with content */}
+          <div className="flex sticky top-0 z-20 bg-card border-b" style={{ height: `${HEADER_HEIGHT_PX}px` }}>
+            {/* Frozen Left Panel Header */}
+            <div 
+              className="sticky left-0 z-30 bg-card border-r flex items-center px-4 py-3 font-semibold"
+              style={{ width: `${SIDE_PANEL_WIDTH_PX}px`, flexShrink: 0 }}
+            >
+              Task Groups & Details
         </div>
-        <div className="sticky top-0 z-20 bg-card border-b">
-          <div className="flex">
+            
+            {/* Timeline Headers */}
+            <div className="flex flex-col bg-muted/30" style={{ width: `${timelineWidth}px` }}>
+              {/* Week Headers */}
+              <div className="flex border-b">
             {weeks.map((week, index) => {
               const daysInWeek = eachDayOfInterval({ start: week.start, end: week.end }).filter(
                 (d) => d >= viewStartDate && d <= viewEndDate,
@@ -133,7 +165,7 @@ export function GanttTimeline({ tasks, viewStartDate, viewEndDate }: GanttTimeli
               return (
                 <div
                   key={index}
-                  className="text-center text-sm font-semibold py-2 border-r"
+                      className="text-center text-sm font-semibold py-2 border-r bg-muted/50"
                   style={{ width: `${daysInWeek * DAY_WIDTH_PX}px` }}
                 >
                   {format(week.start, "MMM d")} - {format(week.end, "d")}
@@ -141,57 +173,91 @@ export function GanttTimeline({ tasks, viewStartDate, viewEndDate }: GanttTimeli
               )
             })}
           </div>
+              
+              {/* Day Headers */}
           <div className="flex">
             {days.map((day, index) => (
               <div
                 key={index}
-                className="text-center text-xs text-muted-foreground py-1 border-r"
+                    className="text-center text-xs text-muted-foreground py-1 border-r bg-muted/30"
                 style={{ width: `${DAY_WIDTH_PX}px` }}
               >
-                {format(day, "E")[0]}
+                    {format(day, "d")}
               </div>
             ))}
+              </div>
           </div>
         </div>
 
-        {/* BODY */}
-        {projectsWithTasks.map((project) => (
-          <React.Fragment key={project.id}>
-            {/* Project Header Row */}
-            <div className="contents">
+          {taskGroups.map((group) => (
+            <div key={group.id}>
+              {/* Group Header Row */}
+              <div className="flex" style={{ height: `${GROUP_HEADER_HEIGHT_PX}px` }}>
+                {/* Frozen Left Side */}
               <div
-                className="sticky left-0 col-start-1 col-span-1 bg-card border-b border-t border-r p-2 z-10"
-                style={{ height: `${ROW_HEIGHT_PX}px` }}
-              >
-                <h3 className="font-semibold text-sm truncate flex items-center h-full">{project.name}</h3>
+                  className="sticky left-0 z-20 bg-muted/20 border-b border-r flex items-center gap-2 px-3 py-2 hover:bg-muted/40 cursor-pointer font-medium"
+                  style={{ width: `${SIDE_PANEL_WIDTH_PX}px` }}
+                  onClick={() => toggleGroup(group.name)}
+                >
+                  {group.isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  <Users className="h-4 w-4" />
+                  <span className="truncate">{group.name}</span>
+                  <Badge variant="outline" className="ml-auto text-xs">
+                    {group.tasks.length}
+                  </Badge>
               </div>
+                
+                {/* Timeline Side */}
               <div
-                className="col-start-2 col-span-1 bg-muted/30 border-b border-t p-2 relative"
-                style={{ height: `${ROW_HEIGHT_PX}px` }}
+                  className="bg-muted/10 border-b relative"
+                  style={{ width: `${timelineWidth}px` }}
               />
             </div>
 
-            {project.tasks.map((task, taskIndex) => {
+              {/* Group Tasks */}
+              {group.isExpanded && group.tasks.map((task, taskIndex) => {
               const startDayIndex = task.startDate ? differenceInDays(task.startDate, viewStartDate) : -1
               const endDayIndex = task.dueDate ? differenceInDays(task.dueDate, viewStartDate) : -1
               const duration = startDayIndex >= 0 && endDayIndex >= 0 ? endDayIndex - startDayIndex + 1 : 0
 
               return (
-                <div className="contents group" key={task.id}>
+                  <div key={task.id} className="flex hover:bg-muted/50 transition-colors" style={{ height: `${ROW_HEIGHT_PX}px` }}>
+                    {/* Frozen Left Side - Task Details */}
                   <div
-                    className="sticky left-0 flex items-center justify-between text-sm p-2 border-b border-r truncate bg-card group-hover:bg-muted/50 z-10 transition-colors"
-                    style={{ height: `${ROW_HEIGHT_PX}px` }}
-                  >
-                    <span className="text-muted-foreground truncate">{task.title}</span>
-                    <Avatar className="h-7 w-7">
-                      <AvatarFallback className={cn("text-xs font-bold", nameToColor(task.assignee || ""))}>
+                      className="sticky left-0 z-20 bg-card border-b border-r flex items-center justify-between text-sm p-3"
+                      style={{ width: `${SIDE_PANEL_WIDTH_PX}px` }}
+                    >
+                      <div className="flex-1 min-w-0 mr-2">
+                        <div className="font-medium truncate mb-1">{task.title}</div>
+                        <div className="flex items-center gap-2">
+                          {task.category && (
+                            <Badge variant="outline" className="text-xs">
+                              {task.category}
+                            </Badge>
+                          )}
+                          <Badge 
+                            variant={task.priority === "high" ? "destructive" : "secondary"}
+                            className="text-xs"
+                          >
+                            {task.priority}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className={cn("text-xs font-bold", group.color)}>
                         {getInitials(task.assignee)}
                       </AvatarFallback>
                     </Avatar>
                   </div>
+                    
+                    {/* Timeline Side - Task Bars */}
                   <div
-                    className="relative border-b group-hover:bg-muted/50 transition-colors"
-                    style={{ height: `${ROW_HEIGHT_PX}px` }}
+                      className="relative border-b"
+                      style={{ width: `${timelineWidth}px` }}
                   >
                     {duration > 0 && startDayIndex < totalDays && startDayIndex >= 0 && (
                       <TooltipProvider delayDuration={100}>
@@ -238,22 +304,25 @@ export function GanttTimeline({ tasks, viewStartDate, viewEndDate }: GanttTimeli
                 </div>
               )
             })}
-          </React.Fragment>
+            </div>
         ))}
 
         {/* Today Marker */}
         {todayPosition >= 0 && (
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-red-500/70 z-20 pointer-events-none"
-            style={{ left: `${SIDE_PANEL_WIDTH_PX + todayPosition + DAY_WIDTH_PX / 2}px` }}
-          >
-            <div className="sticky top-0">
-              <div className="absolute -top-5 -translate-x-1/2 text-xs text-red-500 font-semibold bg-card px-1 rounded shadow-sm">
+              className="absolute w-0.5 bg-red-500/70 z-10 pointer-events-none"
+              style={{ 
+                left: `${SIDE_PANEL_WIDTH_PX + todayPosition + DAY_WIDTH_PX / 2}px`,
+                top: 0,
+                bottom: 0
+              }}
+            >
+              <div className="absolute top-1 -translate-x-1/2 text-xs text-red-500 font-semibold bg-card px-1 rounded shadow-sm">
                 Today
               </div>
             </div>
+          )}
           </div>
-        )}
       </div>
     </div>
   )

@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Calendar, Home, Inbox, Settings, Users, FolderKanban, List, BarChart3 } from "lucide-react"
+import { Calendar, Home, Inbox, Settings, Users, FolderKanban, List, BarChart3, ClipboardList } from "lucide-react"
 
 const data = {
   navMain: [
@@ -44,6 +44,11 @@ const data = {
       title: "Team",
       url: "/team",
       icon: Users,
+    },
+    {
+      title: "Assessments",
+      url: "/assessments",
+      icon: ClipboardList,
     },
     {
       title: "Analytics",
