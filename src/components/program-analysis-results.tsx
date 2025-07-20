@@ -43,8 +43,13 @@ export function ProgramAnalysisResults({
   onClose,
   isImporting = false
 }: ProgramAnalysisResultsProps) {
-  const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set())
-  const [selectedAdminItems, setSelectedAdminItems] = useState<Set<number>>(new Set())
+  // Auto-select all tasks and admin items by default
+  const [selectedTasks, setSelectedTasks] = useState<Set<number>>(
+    new Set(analysisResult.tradeTasks.map((_, index) => index))
+  )
+  const [selectedAdminItems, setSelectedAdminItems] = useState<Set<number>>(
+    new Set(analysisResult.adminItems.map((_, index) => index))
+  )
   const [activeTab, setActiveTab] = useState("overview")
 
   const toggleTaskSelection = (index: number) => {
@@ -469,13 +474,74 @@ export function ProgramAnalysisResults({
         </TabsContent>
 
         <TabsContent value="import" className="space-y-6">
+          {/* Combined Import Option */}
+          <Card className="border-2 border-blue-200 bg-blue-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-800">
+                <Target className="h-5 w-5" />
+                Import Complete Project
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{selectedTasks.size}</div>
+                  <div className="text-sm text-muted-foreground">Trade Tasks</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{selectedAdminItems.size}</div>
+                  <div className="text-sm text-muted-foreground">Admin Items</div>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  Import both trade tasks and admin data to create a complete project
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>• Creates new project: "{analysisResult.programName}"</li>
+                  <li>• Imports all selected tasks and admin items</li>
+                  <li>• Sets up Gantt timeline and calendar events</li>
+                  <li>• Preserves dependencies and scheduling</li>
+                </ul>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={async () => {
+                    if (selectedTasks.size > 0) {
+                      await handleImportTasks()
+                    }
+                    if (selectedAdminItems.size > 0) {
+                      await handleImportAdminItems()
+                    }
+                  }}
+                  disabled={(selectedTasks.size === 0 && selectedAdminItems.size === 0) || isImporting}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  {isImporting ? (
+                    <>
+                      <Upload className="h-4 w-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Target className="h-4 w-4 mr-2" />
+                      Import Both ({selectedTasks.size + selectedAdminItems.size} items)
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Import Trade Tasks */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building className="h-5 w-5" />
-                  Import Trade Tasks
+                  Import Trade Tasks Only
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -488,7 +554,7 @@ export function ProgramAnalysisResults({
                 />
                 <div className="space-y-2">
                   <p className="text-sm">
-                    These tasks will create a <strong>new project</strong> with its own Gantt timeline for team assignment.
+                    Import only the trade tasks to create a <strong>project timeline</strong>.
                   </p>
                   <ul className="text-xs text-muted-foreground space-y-1">
                     <li>• Creates new project: "{analysisResult.programName}"</li>
@@ -501,6 +567,7 @@ export function ProgramAnalysisResults({
                   onClick={handleImportTasks}
                   disabled={selectedTasks.size === 0 || isImporting}
                   className="w-full"
+                  variant="outline"
                 >
                   {isImporting ? (
                     <>
@@ -509,8 +576,8 @@ export function ProgramAnalysisResults({
                     </>
                   ) : (
                     <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Create Project with {selectedTasks.size} Tasks
+                      <Building className="h-4 w-4 mr-2" />
+                      Import {selectedTasks.size} Tasks Only
                     </>
                   )}
                 </Button>
@@ -522,7 +589,7 @@ export function ProgramAnalysisResults({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Import Admin Items
+                  Import Admin Data Only
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -535,7 +602,7 @@ export function ProgramAnalysisResults({
                 />
                 <div className="space-y-2">
                   <p className="text-sm">
-                    These items will be added to the <strong>project calendar</strong> as events and milestones.
+                    Import only admin data to the <strong>project calendar</strong>.
                   </p>
                   <ul className="text-xs text-muted-foreground space-y-1">
                     <li>• Associated with project: "{analysisResult.programName}"</li>
@@ -548,57 +615,23 @@ export function ProgramAnalysisResults({
                   onClick={handleImportAdminItems}
                   disabled={selectedAdminItems.size === 0 || isImporting}
                   className="w-full"
+                  variant="outline"
                 >
                   {isImporting ? (
                     <>
                       <Upload className="h-4 w-4 mr-2 animate-spin" />
-                      Adding to Project...
+                      Adding to Calendar...
                     </>
                   ) : (
                     <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Add {selectedAdminItems.size} Items to Project
+                      <FileText className="h-4 w-4 mr-2" />
+                      Import {selectedAdminItems.size} Admin Items Only
                     </>
                   )}
                 </Button>
               </CardContent>
             </Card>
           </div>
-
-          {/* Import Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Import Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">{selectedTasks.size}</div>
-                  <div className="text-sm text-muted-foreground">Tasks to Import</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-green-600">{selectedAdminItems.size}</div>
-                  <div className="text-sm text-muted-foreground">Admin Items to Import</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-purple-600">
-                    {Array.from(selectedTasks).reduce((total, index) => 
-                      total + (analysisResult.tradeTasks[index].estimatedValue || 0), 0
-                    ).toLocaleString('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 0 })}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Estimated Value</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-orange-600">
-                    {Array.from(selectedTasks).reduce((total, index) => 
-                      total + (analysisResult.tradeTasks[index].estimatedHours || 0), 0
-                    )}h
-                  </div>
-                  <div className="text-sm text-muted-foreground">Estimated Hours</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

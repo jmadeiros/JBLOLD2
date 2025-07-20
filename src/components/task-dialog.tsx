@@ -58,6 +58,17 @@ function TaskDetailsView({ task, onSave }: TaskDetailsViewProps) {
     { key: 'qualityStandards', question: 'Did their work meet project specifications and quality standards?' },
   ]
 
+  // Quick completion toggle handler
+  const handleToggleCompletion = () => {
+    const updatedTask = {
+      ...task,
+      completed: !task.completed,
+      status: (!task.completed ? "done" : "todo") as Task["status"],
+      updatedAt: new Date()
+    }
+    onSave(updatedTask)
+  }
+
   useEffect(() => {
     if (task.supervisorAssessment) {
       setAssessedWorker(task.supervisorAssessment.assessedWorker)
@@ -109,15 +120,30 @@ function TaskDetailsView({ task, onSave }: TaskDetailsViewProps) {
     <div className="space-y-6">
       {/* Task Information */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Badge className={getPriorityColor(task.priority)}>
-            {task.priority.toUpperCase()}
-          </Badge>
-          <Badge className={getStatusColor(task.status)}>
-            {task.status === "in-progress" ? "In Progress" : 
-             task.status === "todo" ? "To Do" :
-             task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-          </Badge>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Badge className={getPriorityColor(task.priority)}>
+              {task.priority.toUpperCase()}
+            </Badge>
+            <Badge className={getStatusColor(task.status)}>
+              {task.status === "in-progress" ? "In Progress" : 
+               task.status === "todo" ? "To Do" :
+               task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+            </Badge>
+            {task.completed && (
+              <Badge className="bg-green-100 text-green-800">
+                ✓ COMPLETED
+              </Badge>
+            )}
+          </div>
+          <Button
+            onClick={handleToggleCompletion}
+            variant={task.completed ? "outline" : "default"}
+            size="sm"
+            className={task.completed ? "text-gray-600" : "bg-green-600 hover:bg-green-700"}
+          >
+            {task.completed ? "Mark Incomplete" : "Mark Complete"}
+          </Button>
         </div>
 
         {task.description && (

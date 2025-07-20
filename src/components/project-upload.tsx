@@ -170,6 +170,12 @@ export function ProjectUpload({
       // Convert TradeTaskBreakdown to Task objects and import
       if (onTasksImported && selectedFileForAnalysis?.analysisResult) {
         const programName = selectedFileForAnalysis.analysisResult.programName
+        console.log('🏷️ Program name from analysis:', {
+          programName,
+          analysisResult: selectedFileForAnalysis.analysisResult,
+          hasAnalysisResult: !!selectedFileForAnalysis.analysisResult,
+          hasProgramName: !!programName
+        })
         onTasksImported(tasks, programName)
       }
       
@@ -327,174 +333,163 @@ export function ProjectUpload({
   }
 
   return (
-    <>
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Upload className="h-5 w-5 text-blue-600" />
-          Upload & Create New Project
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Drag and Drop Area */}
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={cn(
-            "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-            isDragOver 
-              ? "border-blue-500 bg-blue-50" 
-              : "border-gray-300 hover:border-gray-400"
-          )}
-        >
-          <Upload className={cn(
-            "mx-auto h-12 w-12 mb-4",
-            isDragOver ? "text-blue-500" : "text-gray-400"
-          )} />
-          <div className="space-y-2">
-            <p className="text-lg font-medium">
-              {isDragOver ? "Drop files here" : "Drag & drop construction program"}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              or{" "}
-              <label className="text-blue-600 hover:text-blue-500 cursor-pointer underline">
-                browse files
-                <input
-                  type="file"
-                  multiple
-                  accept={acceptedTypes.join(',')}
-                  onChange={handleFileInput}
-                  className="hidden"
-                />
-              </label>{" "}
-              to create a new project
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Supports: {acceptedTypes.join(', ')} • Max {maxFileSize}MB per file
-            </p>
-          </div>
-        </div>
-
-        {/* Upload Progress and File List */}
-        {uploadedFiles.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium">Uploaded Files ({uploadedFiles.length})</h4>
-              {isUploading && (
-                <Badge variant="outline" className="text-blue-600">
-                  Uploading...
-                </Badge>
-              )}
-            </div>
-            
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {uploadedFiles.map((file) => (
-                <div key={file.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                  <div className="flex-shrink-0">
-                    {file.status === 'completed' && <Check className="h-4 w-4 text-green-600" />}
-                    {file.status === 'analyzed' && <Brain className="h-4 w-4 text-blue-600" />}
-                    {file.status === 'analyzing' && <Zap className="h-4 w-4 text-orange-600 animate-pulse" />}
-                    {file.status === 'error' && <AlertCircle className="h-4 w-4 text-red-600" />}
-                    {file.status === 'uploading' && getFileIcon(file.name)}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
-                    
-                    {file.status === 'uploading' && (
-                      <Progress value={file.progress} className="h-1 mt-1" />
-                    )}
-                    
-                    {file.status === 'analyzing' && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Zap className="h-3 w-3 text-orange-600" />
-                        <span className="text-xs text-orange-600">Analyzing program...</span>
-                      </div>
-                    )}
-                    
-                    {file.status === 'analyzed' && file.analysisResult && (
-                      <div className="mt-1 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {file.analysisResult.tradeTasks.length} tasks
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {file.analysisResult.adminItems.length} admin items
-                          </Badge>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewAnalysis(file)}
-                          className="h-6 text-xs"
-                        >
-                          <FileSearch className="h-3 w-3 mr-1" />
-                          View Analysis
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {file.status === 'completed' && !file.analysisResult && isProgramFile({ name: file.name } as File) && (
-                      <Button
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => analyzeFile(file, { name: file.name, size: file.size } as File)}
-                        className="h-6 text-xs mt-1"
-                      >
-                        <Brain className="h-3 w-3 mr-1" />
-                        Analyze with AI
-                      </Button>
-                    )}
-                    
-                    {file.status === 'error' && file.errorMessage && (
-                      <p className="text-xs text-red-600 mt-1">{file.errorMessage}</p>
-                    )}
-                  </div>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(file.id)}
-                    className="flex-shrink-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
+    <div className="space-y-4">
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
+          isDragOver 
+            ? "border-blue-500 bg-blue-50" 
+            : "border-gray-300 hover:border-gray-400"
         )}
-
-        {/* Upload Stats */}
-        {uploadedFiles.length > 0 && (
-          <div className="text-xs text-muted-foreground space-y-1">
-            <div>Total files: {uploadedFiles.length} / {maxFiles}</div>
-            <div>
-              Total size: {formatFileSize(uploadedFiles.reduce((acc, file) => acc + file.size, 0))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-
-    {/* Analysis Results Modal */}
-    {showAnalysisResults && selectedFileForAnalysis?.analysisResult && (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-7xl w-full max-h-[90vh] overflow-auto">
-          <div className="p-6">
-            <ProgramAnalysisResults
-              analysisResult={selectedFileForAnalysis.analysisResult}
-              onImportTasks={handleImportTasks}
-              onImportAdminItems={handleImportAdminItems}
-              onClose={() => setShowAnalysisResults(false)}
-              isImporting={isImporting}
-            />
-          </div>
+      >
+        <Upload className={cn(
+          "mx-auto h-12 w-12 mb-4",
+          isDragOver ? "text-blue-500" : "text-gray-400"
+        )} />
+        <div className="space-y-2 text-center">
+          <p className="text-lg font-medium">
+            {isDragOver ? "Drop files here" : "Drag & drop construction program"}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            or{" "}
+            <label className="text-blue-600 hover:text-blue-500 cursor-pointer underline">
+              browse files
+              <input
+                type="file"
+                multiple
+                accept={acceptedTypes.join(',')}
+                onChange={handleFileInput}
+                className="hidden"
+              />
+            </label>{" "}
+            to create a new project
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Supports: {acceptedTypes.join(', ')} • Max {maxFileSize}MB per file
+          </p>
         </div>
       </div>
-    )}
-  </>
+
+      {/* Upload Progress and File List */}
+      {uploadedFiles.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium">Uploaded Files ({uploadedFiles.length})</h4>
+            {isUploading && (
+              <Badge variant="outline" className="text-blue-600">
+                Uploading...
+              </Badge>
+            )}
+          </div>
+          
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {uploadedFiles.map((file) => (
+              <div key={file.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                <div className="flex-shrink-0">
+                  {file.status === 'completed' && <Check className="h-4 w-4 text-green-600" />}
+                  {file.status === 'analyzed' && <Brain className="h-4 w-4 text-blue-600" />}
+                  {file.status === 'analyzing' && <Zap className="h-4 w-4 text-orange-600 animate-pulse" />}
+                  {file.status === 'error' && <AlertCircle className="h-4 w-4 text-red-600" />}
+                  {file.status === 'uploading' && getFileIcon(file.name)}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                  
+                  {file.status === 'uploading' && (
+                    <Progress value={file.progress} className="h-1 mt-1" />
+                  )}
+                  
+                  {file.status === 'analyzing' && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Zap className="h-3 w-3 text-orange-600" />
+                      <span className="text-xs text-orange-600">Analyzing program...</span>
+                    </div>
+                  )}
+                  
+                  {file.status === 'analyzed' && file.analysisResult && (
+                    <div className="mt-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {file.analysisResult.tradeTasks.length} tasks
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {file.analysisResult.adminItems.length} admin items
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewAnalysis(file)}
+                        className="h-6 text-xs"
+                      >
+                        <FileSearch className="h-3 w-3 mr-1" />
+                        View Analysis
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {file.status === 'completed' && !file.analysisResult && isProgramFile({ name: file.name } as File) && (
+                    <Button
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => analyzeFile(file, { name: file.name, size: file.size } as File)}
+                      className="h-6 text-xs mt-1"
+                    >
+                      <Brain className="h-3 w-3 mr-1" />
+                      Analyze with AI
+                    </Button>
+                  )}
+                  
+                  {file.status === 'error' && file.errorMessage && (
+                    <p className="text-xs text-red-600 mt-1">{file.errorMessage}</p>
+                  )}
+                </div>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFile(file.id)}
+                  className="flex-shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Upload Stats */}
+      {uploadedFiles.length > 0 && (
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div>Total files: {uploadedFiles.length} / {maxFiles}</div>
+          <div>
+            Total size: {formatFileSize(uploadedFiles.reduce((acc, file) => acc + file.size, 0))}
+          </div>
+        </div>
+      )}
+
+      {/* Analysis Results Modal */}
+      {showAnalysisResults && selectedFileForAnalysis?.analysisResult && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-7xl w-full max-h-[90vh] overflow-auto">
+            <div className="p-6">
+              <ProgramAnalysisResults
+                analysisResult={selectedFileForAnalysis.analysisResult}
+                onImportTasks={handleImportTasks}
+                onImportAdminItems={handleImportAdminItems}
+                onClose={() => setShowAnalysisResults(false)}
+                isImporting={isImporting}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 } 

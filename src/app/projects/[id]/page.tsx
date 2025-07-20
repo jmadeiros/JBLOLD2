@@ -49,11 +49,11 @@ interface Project {
   name: string
   location: string
   description: string
-  status: "Pre-construction" | "In Progress" | "On Hold" | "Substantially Complete" | "Completed"
+  status: "Pre-construction" | "In Progress" | "On Hold" | "Substantially Complete" | "Completed" | "Delayed"
   priority: "high" | "medium" | "low"
   progress: number
   dueDate: string
-  teamMembers: number
+  teamMembers: { initials: string; name: string; role: string }[] // Changed from number to array of objects
   tasksCompleted: number
   totalTasks: number
   tasksByStatus: {
@@ -89,7 +89,18 @@ const allProjects: Project[] = [
     priority: "high",
     progress: 45,
     dueDate: "Jun 15, 2026",
-    teamMembers: 25,
+    teamMembers: [
+      { initials: "DM", name: "David Martinez", role: "Site Supervisor" },
+      { initials: "CR", name: "Carlos Rodriguez", role: "Master Electrician" },
+      { initials: "MT", name: "Mike Thompson", role: "Lead Plumber" },
+      { initials: "TR", name: "Tony Ricci", role: "HVAC Technician" },
+      { initials: "BJ", name: "Brad Johnson", role: "Concrete Specialist" },
+      { initials: "SW", name: "Steve Wilson", role: "Heavy Equipment Operator" },
+      { initials: "JS", name: "Jake Sullivan", role: "Carpenter/Framer" },
+      { initials: "MD", name: "Marcus Davis", role: "Safety Inspector" },
+      { initials: "RF", name: "Rico Fernandez", role: "Welder/Ironworker" },
+      { initials: "DW", name: "Danny Walsh", role: "Drywall Specialist" }
+    ],
     tasksCompleted: 88,
     totalTasks: 210,
     tasksByStatus: {
@@ -111,7 +122,18 @@ const allProjects: Project[] = [
     priority: "high",
     progress: 65,
     dueDate: "Dec 1, 2025",
-    teamMembers: 18,
+    teamMembers: [
+      { initials: "SJ", name: "Sarah Johnson", role: "Site Supervisor" },
+      { initials: "FE", name: "Fiona Evans", role: "Master Electrician" },
+      { initials: "LP", name: "Liam Patterson", role: "Lead Plumber" },
+      { initials: "AR", name: "Alice Roberts", role: "HVAC Technician" },
+      { initials: "BJ", name: "Brad Johnson", role: "Concrete Specialist" },
+      { initials: "SW", name: "Steve Wilson", role: "Heavy Equipment Operator" },
+      { initials: "JS", name: "Jake Sullivan", role: "Carpenter/Framer" },
+      { initials: "MD", name: "Marcus Davis", role: "Safety Inspector" },
+      { initials: "RF", name: "Rico Fernandez", role: "Welder/Ironworker" },
+      { initials: "DW", name: "Danny Walsh", role: "Drywall Specialist" }
+    ],
     tasksCompleted: 112,
     totalTasks: 180,
     tasksByStatus: {
@@ -133,7 +155,18 @@ const allProjects: Project[] = [
     priority: "medium",
     progress: 15,
     dueDate: "Sep 30, 2025",
-    teamMembers: 12,
+    teamMembers: [
+      { initials: "MR", name: "Mike Rodriguez", role: "Site Supervisor" },
+      { initials: "DE", name: "David Evans", role: "Master Electrician" },
+      { initials: "LP", name: "Liam Patterson", role: "Lead Plumber" },
+      { initials: "AR", name: "Alice Roberts", role: "HVAC Technician" },
+      { initials: "BJ", name: "Brad Johnson", role: "Concrete Specialist" },
+      { initials: "SW", name: "Steve Wilson", role: "Heavy Equipment Operator" },
+      { initials: "JS", name: "Jake Sullivan", role: "Carpenter/Framer" },
+      { initials: "MD", name: "Marcus Davis", role: "Safety Inspector" },
+      { initials: "RF", name: "Rico Fernandez", role: "Welder/Ironworker" },
+      { initials: "DW", name: "Danny Walsh", role: "Drywall Specialist" }
+    ],
     tasksCompleted: 18,
     totalTasks: 95,
     tasksByStatus: {
@@ -569,8 +602,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (typeof window !== 'undefined') {
       try {
         const importedTasks = localStorage.getItem('importedTasks')
+        console.log('🔍 Raw imported tasks from localStorage:', importedTasks)
+        
         if (importedTasks) {
           const parsed = JSON.parse(importedTasks)
+          console.log('📊 Parsed imported tasks:', parsed.length)
+          
           const tasksWithDates = parsed.map((task: any) => ({
             ...task,
             startDate: task.startDate ? new Date(task.startDate) : undefined,
@@ -579,19 +616,60 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             updatedAt: new Date(task.updatedAt)
           }))
           
-          // Merge imported tasks with existing hardcoded tasks
+          console.log('🎯 Tasks with project IDs:', tasksWithDates.map((t: Task) => ({ id: t.id, projectId: t.projectId, title: t.title })))
+          
+          // Combine imported tasks with hardcoded tasks (different project IDs)
           setTasks(prev => {
-            const existingIds = new Set(prev.map(t => t.id))
-            const newTasks = tasksWithDates.filter((task: Task) => !existingIds.has(task.id))
-            return [...prev, ...newTasks]
+            const hardcodedTasks = allTasks.filter(task => task.projectId === "1" || task.projectId === "2")
+            const combinedTasks = [...hardcodedTasks, ...tasksWithDates]
+            console.log('🔄 Combined tasks:', {
+              hardcoded: hardcodedTasks.length,
+              imported: tasksWithDates.length,
+              total: combinedTasks.length,
+              projectBreakdown: combinedTasks.reduce((acc, task) => {
+                acc[task.projectId || 'no-id'] = (acc[task.projectId || 'no-id'] || 0) + 1
+                return acc
+              }, {} as Record<string, number>)
+            })
+            return combinedTasks
           })
           
-          console.log('Loaded imported tasks for project page:', tasksWithDates.length)
+          console.log('✅ Set tasks for project page:', tasksWithDates.length)
+        } else {
+          // If no imported tasks, use the hardcoded tasks
+          console.log('📝 Using hardcoded tasks only')
+          setTasks(allTasks)
         }
       } catch (error) {
-        console.error('Failed to load imported tasks:', error)
+        console.error('❌ Failed to load imported tasks:', error)
+        setTasks(allTasks) // Fallback to hardcoded tasks
       }
     }
+  }, [resolvedParams]) // Re-run when project ID changes
+
+  // Also listen for storage changes (when new projects are imported)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'importedTasks' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue)
+          const tasksWithDates = parsed.map((task: any) => ({
+            ...task,
+            startDate: task.startDate ? new Date(task.startDate) : undefined,
+            dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+            createdAt: new Date(task.createdAt),
+            updatedAt: new Date(task.updatedAt)
+          }))
+          setTasks(tasksWithDates)
+          console.log('Updated tasks from storage change:', tasksWithDates.length)
+        } catch (error) {
+          console.error('Failed to parse updated tasks:', error)
+        }
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false)
@@ -648,11 +726,48 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   // Filter tasks for current project and week
   const projectTasks = useMemo(() => {
     if (!project) return []
-    return tasks.filter(task => {
+    
+    const filteredTasks = tasks.filter(task => {
       const isProjectTask = task.projectId === project.id
-      const isInWeek = task.startDate && isSameWeek(task.startDate, currentWeek, { weekStartsOn: 1 })
+      
+      // Check if task overlaps with the current week (not just starts in the week)
+      const isInWeek = task.startDate && task.dueDate && (() => {
+        const weekStart = currentWeek
+        const weekEnd = addDays(currentWeek, 4) // Friday (5 days from Monday)
+        
+        // Task overlaps if it starts before week ends AND ends after week starts
+        const taskOverlapsWeek = task.startDate <= weekEnd && task.dueDate >= weekStart
+        
+        return taskOverlapsWeek
+      })()
+      
       return isProjectTask && isInWeek
     })
+    
+    console.log('🔎 Project task filtering:', {
+      projectId: project.id,
+      projectName: project.name,
+      totalTasks: tasks.length,
+      projectTasks: tasks.filter(task => task.projectId === project.id).length,
+      currentWeek: currentWeek.toISOString().split('T')[0],
+      weekEnd: addDays(currentWeek, 4).toISOString().split('T')[0],
+      filteredTasks: filteredTasks.length,
+      allProjectTasks: tasks.filter(task => task.projectId === project.id).map(t => ({
+        id: t.id,
+        title: t.title,
+        startDate: t.startDate?.toISOString().split('T')[0],
+        dueDate: t.dueDate?.toISOString().split('T')[0],
+        projectId: t.projectId,
+        overlapsWeek: t.startDate && t.dueDate ? 
+          t.startDate <= addDays(currentWeek, 4) && t.dueDate >= currentWeek : false
+      })),
+      tasksByProject: tasks.reduce((acc, task) => {
+        acc[task.projectId || 'no-id'] = (acc[task.projectId || 'no-id'] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+    })
+    
+    return filteredTasks
   }, [tasks, project, currentWeek])
 
   // Filter team members based on selection
@@ -918,7 +1033,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm">Team Members</span>
-                    <span className="font-semibold">{project.teamMembers}</span>
+                    <span className="font-semibold">{project.teamMembers.length}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm">Site Supervisor</span>
@@ -1047,12 +1162,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             {filteredDayTasks.map(task => {
                               const assignedMember = allTeamMembers.find(m => m.name === task.assignee)
                               
+                              // Calculate task position and duration within the week
+                              const taskStart = task.startDate!
+                              const taskEnd = task.dueDate!
+                              const isTaskStartDay = day.toDateString() === taskStart.toDateString()
+                              const isTaskEndDay = day.toDateString() === taskEnd.toDateString()
+                              const isMultiDay = taskStart.toDateString() !== taskEnd.toDateString()
+                              
                               return (
                                 <div
                                   key={task.id}
-                                  className={`p-3 rounded-lg bg-white border shadow-sm cursor-pointer hover:shadow-md transition-shadow relative ${
+                                  className={`p-3 rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow relative ${
                                     dragOverTask === task.id ? 'border-blue-500 bg-blue-50 border-2' : 'hover:bg-blue-50'
-                                  }`}
+                                  } ${task.completed ? 'bg-gray-100 opacity-75' : 'bg-white'}`}
                                   onClick={() => handleTaskClick(task)}
                                   onDragOver={(e) => handleTaskDragOver(e, task.id)}
                                   onDragLeave={handleTaskDragLeave}
@@ -1060,19 +1182,30 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 >
                                   {/* Header with Title and Priority */}
                                   <div className="flex items-start justify-between mb-2">
-                                    <h4 className="font-semibold text-sm leading-tight">{task.title}</h4>
+                                    <h4 className={`font-semibold text-sm leading-tight ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                                      {task.completed && <span className="text-green-600 mr-1">✓</span>}
+                                      {task.title}
+                                      {isMultiDay && (
+                                        <div className={`text-xs font-normal mt-1 ${task.completed ? 'text-gray-400' : 'text-blue-600'}`}>
+                                          {format(taskStart, 'MMM d')} - {format(taskEnd, 'MMM d')}
+                                          {isTaskStartDay && " (START)"}
+                                          {isTaskEndDay && " (END)"}
+                                          {!isTaskStartDay && !isTaskEndDay && " (ONGOING)"}
+                                        </div>
+                                      )}
+                                    </h4>
                                     <Badge className={`text-xs px-2 py-0.5 ml-2 flex-shrink-0 ${
                                       task.priority === "high" ? "bg-red-100 text-red-800" :
                                       task.priority === "medium" ? "bg-yellow-100 text-yellow-800" :
                                       "bg-green-100 text-green-800"
-                                    }`}>
+                                    } ${task.completed ? 'opacity-60' : ''}`}>
                                       {task.priority.toUpperCase()}
                                     </Badge>
                                   </div>
 
                                   {/* Description */}
                                   {task.description && (
-                                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                                    <p className={`text-xs mb-2 line-clamp-2 ${task.completed ? 'text-gray-400 line-through' : 'text-muted-foreground'}`}>
                                       {task.description}
                                     </p>
                                   )}
@@ -1081,20 +1214,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                   {task.tags && task.tags.length > 0 && (
                                     <div className="flex gap-1 mb-2 flex-wrap">
                                       {task.tags.slice(0, 3).map(tag => (
-                                        <Badge key={tag} variant="outline" className="text-xs px-1 py-0">
+                                        <Badge key={tag} variant="outline" className={`text-xs px-1 py-0 ${task.completed ? 'opacity-50' : ''}`}>
                                           {tag}
                                         </Badge>
                                       ))}
                                       {task.tags.length > 3 && (
-                                        <span className="text-xs text-muted-foreground">+{task.tags.length - 3}</span>
+                                        <span className={`text-xs ${task.completed ? 'text-gray-400' : 'text-muted-foreground'}`}>+{task.tags.length - 3}</span>
                                       )}
                                     </div>
                                   )}
 
                                   {/* Bottom Row: Assignee only */}
                                   <div className="flex items-center gap-1">
-                                    <Users className="h-3 w-3 text-muted-foreground" />
-                                    <span className="text-xs text-muted-foreground truncate">
+                                    <Users className={`h-3 w-3 ${task.completed ? 'text-gray-400' : 'text-muted-foreground'}`} />
+                                    <span className={`text-xs truncate ${task.completed ? 'text-gray-400' : 'text-muted-foreground'}`}>
                                       {task.assignee || "Unassigned"}
                                     </span>
                                   </div>
@@ -1209,7 +1342,28 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             /* Gantt Timeline View */
             <div className="bg-white rounded-lg border">
               <GanttTimeline 
-                tasks={tasks.filter(task => task.projectId === project?.id)} 
+                tasks={(() => {
+                  const ganttTasks = tasks.filter(task => task.projectId === project?.id)
+                  console.log('📊 Gantt timeline tasks:', {
+                    projectId: project?.id,
+                    projectName: project?.name,
+                    totalTasks: tasks.length,
+                    ganttTasks: ganttTasks.length,
+                    taskDetails: ganttTasks.map(t => ({
+                      id: t.id,
+                      title: t.title,
+                      startDate: t.startDate?.toISOString().split('T')[0],
+                      dueDate: t.dueDate?.toISOString().split('T')[0],
+                      assignee: t.assignee,
+                      projectId: t.projectId
+                    })),
+                    allProjectTasks: tasks.reduce((acc, task) => {
+                      acc[task.projectId || 'no-id'] = (acc[task.projectId || 'no-id'] || 0) + 1
+                      return acc
+                    }, {} as Record<string, number>)
+                  })
+                  return ganttTasks
+                })()} 
                 viewStartDate={new Date(2020, 8, 1)} // September 2020
                 viewEndDate={new Date(2026, 11, 31)} // December 2026
               />
