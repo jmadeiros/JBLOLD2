@@ -117,7 +117,24 @@ Return the analysis as a JSON object with the following structure:
 
 export class ProgramAnalysisService {
   // Efficient Base64 conversion for large files (prevents call stack overflow)
-  private static arrayBufferToBase64(uint8Array: Uint8Array): string {
+  private static async arrayBufferToBase64(uint8Array: Uint8Array): Promise<string> {
+    // Use native browser FileReader API for reliable Base64 conversion
+    return new Promise<string>((resolve, reject) => {
+      const blob = new Blob([uint8Array])
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        // Remove the data URL prefix (data:application/octet-stream;base64,)
+        const base64 = result.split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = () => reject(new Error('Failed to convert to Base64'))
+      reader.readAsDataURL(blob)
+    })
+  }
+
+  // Alternative synchronous method as fallback
+  private static arrayBufferToBase64Sync(uint8Array: Uint8Array): string {
     const chunkSize = 0x8000 // 32KB chunks to prevent call stack overflow
     let base64 = ''
     
@@ -139,7 +156,7 @@ export class ProgramAnalysisService {
       // Convert file to base64 for sending to server (chunk-based approach for large files)
       const arrayBuffer = await file.arrayBuffer()
       const uint8Array = new Uint8Array(arrayBuffer)
-      const base64Data = this.arrayBufferToBase64(uint8Array)
+      const base64Data = await this.arrayBufferToBase64(uint8Array)
       
       console.log('📋 Sending file to server for PDF text extraction...')
       
