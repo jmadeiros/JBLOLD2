@@ -116,6 +116,19 @@ Return the analysis as a JSON object with the following structure:
 // AI analysis now handled by server-side API route
 
 export class ProgramAnalysisService {
+  // Efficient Base64 conversion for large files (prevents call stack overflow)
+  private static arrayBufferToBase64(uint8Array: Uint8Array): string {
+    const chunkSize = 0x8000 // 32KB chunks to prevent call stack overflow
+    let base64 = ''
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length))
+      base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)))
+    }
+    
+    return base64
+  }
+
   // File parsing methods - now sends raw file to server for processing
   static async parseExcelFile(file: File): Promise<ParsedProgram> {
     console.log('📄 Parsing uploaded file:', file.name)
@@ -123,10 +136,10 @@ export class ProgramAnalysisService {
     const projectName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
     
     try {
-      // Convert file to base64 for sending to server
+      // Convert file to base64 for sending to server (chunk-based approach for large files)
       const arrayBuffer = await file.arrayBuffer()
       const uint8Array = new Uint8Array(arrayBuffer)
-      const base64Data = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)))
+      const base64Data = this.arrayBufferToBase64(uint8Array)
       
       console.log('📋 Sending file to server for PDF text extraction...')
       
