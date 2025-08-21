@@ -247,6 +247,8 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('📤 Sending program to Gemini AI...')
+    console.log('📊 Program data size:', JSON.stringify(programData).length, 'characters')
+    console.log('📋 Program data preview:', JSON.stringify(programData).substring(0, 500) + '...')
     
     // Call Gemini API with fallback
     let aiResponse: string
@@ -276,6 +278,9 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('📥 Raw AI response received, parsing...')
+    console.log('📊 AI response length:', aiResponse.length, 'characters')
+    console.log('📋 AI response preview:', aiResponse.substring(0, 500) + '...')
+    console.log('📋 AI response ending:', aiResponse.slice(-500))
     
     // Clean the AI response - remove markdown code blocks and comments
     let cleanResponse = aiResponse
