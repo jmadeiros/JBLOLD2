@@ -11,6 +11,7 @@ import { AIInsightsPanel } from "@/components/ai-insights-panel"
 import { ProjectUpload } from "@/components/project-upload"
 import { toast } from "sonner"
 import type { Task, TradeTaskBreakdown, ProgrammeAdminItem, CalendarEvent } from "../../../types/task"
+import { projectService, taskService, type Project as SupabaseProject } from "@/lib/supabase"
 import {
   FolderKanban,
   Plus,
@@ -44,6 +45,50 @@ interface Project {
   siteSupervisor: string
   criticalPathTasks: number
   budget: string
+}
+
+// Helper function to convert Supabase project to UI project
+const convertSupabaseProject = async (dbProject: SupabaseProject): Promise<Project> => {
+  // Get tasks for this project to calculate stats
+  const tasks = await taskService.getByProject(dbProject.id)
+  
+  const completedTasks = tasks.filter(t => t.completed).length
+  const tasksByStatus = {
+    todo: tasks.filter(t => t.status === 'todo').length,
+    inProgress: tasks.filter(t => t.status === 'in_progress').length,
+    review: tasks.filter(t => t.status === 'review').length,
+    done: tasks.filter(t => t.completed).length
+  }
+  
+  const trades = [...new Set(tasks.map(t => t.trade).filter(Boolean) as string[])]
+  const criticalPathTasks = tasks.filter(t => t.priority === 'high').length
+  
+  return {
+    id: dbProject.id,
+    name: dbProject.name,
+    location: dbProject.location || "TBD",
+    description: dbProject.description || "",
+    status: dbProject.status as any || "Pre-construction",
+    priority: "medium", // Default for now
+    progress: dbProject.progress,
+    dueDate: dbProject.end_date ? new Date(dbProject.end_date).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    }) : "TBD",
+    teamMembers: [
+      { initials: "PM", name: "Project Manager", role: "Manager" },
+      { initials: "SE", name: "Site Engineer", role: "Engineer" },
+    ],
+    tasksCompleted: completedTasks,
+    totalTasks: tasks.length,
+    isStarred: false,
+    tasksByStatus,
+    trades,
+    siteSupervisor: "TBD",
+    criticalPathTasks,
+    budget: dbProject.budget ? `$${dbProject.budget.toLocaleString()}` : "$0"
+  }
 }
 
 // Initial hardcoded projects
@@ -108,44 +153,39 @@ const INITIAL_PROJECTS: Project[] = [
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS)
+  const [loading, setLoading] = useState(true)
 
-  // Load saved projects from localStorage on page mount
+  // Load projects from Supabase on page mount
   useEffect(() => {
-    try {
-      const savedProjects = localStorage.getItem('constructionProjects')
-      if (savedProjects) {
-        const parsed = JSON.parse(savedProjects)
-        console.log('🔄 Loading saved projects from localStorage:', parsed.length)
+    const loadProjects = async () => {
+      try {
+        console.log('🔄 Loading projects from Supabase...')
+        const dbProjects = await projectService.getAll()
+        console.log('📊 Loaded projects from database:', dbProjects.length)
         
-        // Validate each project's teamMembers structure
-        const validatedProjects = parsed.map((project: any) => {
-          if (!Array.isArray(project.teamMembers)) {
-            console.warn('⚠️ Invalid teamMembers, fixing:', project.id, project.teamMembers)
-            project.teamMembers = [
-              { initials: "PM", name: "Project Manager", role: "Manager" },
-              { initials: "SE", name: "Site Engineer", role: "Engineer" },
-            ]
-          }
-          // Ensure each team member has the correct structure
-          project.teamMembers = project.teamMembers.map((member: any) => {
-            if (typeof member !== 'object' || !member.initials || !member.name || !member.role) {
-              console.warn('⚠️ Invalid team member structure, fixing:', member)
-              return { initials: "TM", name: "Team Member", role: "Member" }
-            }
-            return member
-          })
-          return project
-        })
+        // Convert Supabase projects to UI projects (including task stats)
+        const convertedProjects = await Promise.all(
+          dbProjects.map(async (dbProject) => await convertSupabaseProject(dbProject))
+        )
         
-        setProjects(validatedProjects)
-      } else {
-        console.log('📝 No saved projects found, using initial projects')
+        // Combine with initial hardcoded projects (avoid duplicates)
+        const allProjects = [
+          ...convertedProjects,
+          ...INITIAL_PROJECTS.filter(ip => !convertedProjects.find(cp => cp.id === ip.id))
+        ]
+        
+        setProjects(allProjects)
+        console.log('✅ Projects loaded and converted:', allProjects.length)
+      } catch (error) {
+        console.error('❌ Failed to load projects from Supabase:', error)
+        // Fallback to hardcoded projects
         setProjects(INITIAL_PROJECTS)
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('❌ Failed to load projects from localStorage:', error)
-      setProjects(INITIAL_PROJECTS)
     }
+    
+    loadProjects()
   }, [])
 
   const handleFilesUploaded = (files: File[]) => {
@@ -160,102 +200,76 @@ export default function ProjectsPage() {
     )
   }
 
-  const handleTasksImported = (tasks: TradeTaskBreakdown[], programName?: string) => {
+  const handleTasksImported = async (tasks: TradeTaskBreakdown[], programName?: string) => {
     console.log('🏗️ Creating new project:', { programName, tasksCount: tasks.length })
     
-    // Create a new project from the imported tasks
-    const newProjectId = (projects.length + 1).toString()
-    const extractedProjectName = programName || tasks[0]?.description?.split(' ')[0] || "Imported Project"
-    
-    const newProject: Project = {
-      id: newProjectId,
-      name: extractedProjectName,
-      location: "TBD", 
-      description: `Project created from imported construction program with ${tasks.length} trade tasks.`,
-      status: "Pre-construction",
-      priority: "medium",
-      progress: 0,
-      dueDate: tasks.length > 0 && tasks[0].endDate ? 
-        new Date(tasks[tasks.length - 1].endDate).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        }) : "TBD",
-      teamMembers: [
-        { initials: "PM", name: "Project Manager", role: "Manager" },
-        { initials: "SE", name: "Site Engineer", role: "Engineer" },
-      ],
-      tasksCompleted: 0,
-      totalTasks: tasks.length,
-      isStarred: false,
-      tasksByStatus: {
-        todo: tasks.length,
-        inProgress: 0,
-        review: 0,
-        done: 0
-      },
-      trades: [...new Set(tasks.map(task => task.trade))], // Unique trades
-      siteSupervisor: "TBD",
-      criticalPathTasks: tasks.filter(task => task.priority === 'high').length,
-      budget: "$0"
-    }
-
-    console.log('✅ New project created:', newProject)
-
-    // Add the new project to the projects list
-    const updatedProjects = [newProject, ...projects]
-    setProjects(updatedProjects)
-    
-    // SAVE PROJECTS TO LOCALSTORAGE TO PERSIST THEM
     try {
-      // Validate project structure before saving
-      console.log('🔍 Validating project before save:', {
-        teamMembers: newProject.teamMembers,
-        teamMembersIsArray: Array.isArray(newProject.teamMembers),
-        firstMember: newProject.teamMembers[0]
-      })
+      const extractedProjectName = programName || tasks[0]?.description?.split(' ')[0] || "Imported Project"
       
-      localStorage.setItem('constructionProjects', JSON.stringify(updatedProjects))
-      console.log('💾 Projects saved to localStorage:', updatedProjects.length)
+      // Create project in Supabase
+      const newSupabaseProject = await projectService.create({
+        name: extractedProjectName,
+        location: "TBD",
+        description: `Project created from imported construction program with ${tasks.length} trade tasks.`,
+        status: "Pre-construction",
+        progress: 0,
+        start_date: tasks.length > 0 ? tasks[0].startDate.toISOString().split('T')[0] : undefined,
+        end_date: tasks.length > 0 ? tasks[tasks.length - 1].endDate.toISOString().split('T')[0] : undefined,
+        budget: 0,
+        programme_filename: programName,
+        analysis_date: new Date().toISOString(),
+        trade_count: tasks.length,
+        admin_items_count: 0
+      })
+
+      if (!newSupabaseProject) {
+        throw new Error('Failed to create project in database')
+      }
+
+      console.log('✅ New project created in Supabase:', newSupabaseProject)
+      
+      // Convert TradeTaskBreakdown objects to Supabase Task objects
+      const supabaseTasks = tasks.map((tradeTask) => ({
+        project_id: newSupabaseProject.id,
+        title: tradeTask.description,
+        description: `${tradeTask.trade} work: ${tradeTask.description}`,
+        completed: false,
+        priority: tradeTask.priority,
+        start_date: tradeTask.startDate.toISOString().split('T')[0],
+        due_date: tradeTask.endDate.toISOString().split('T')[0],
+        status: "todo",
+        assignee: tradeTask.trade, // Use trade as assignee for Gantt grouping
+        tags: tradeTask.floorCoreUnit ? [tradeTask.floorCoreUnit] : [],
+        category: tradeTask.trade.includes('Electric') ? 'Electrical' : 
+                  tradeTask.trade.includes('Plumb') ? 'Plumbing' :
+                  tradeTask.trade.includes('Structural') ? 'Structural' :
+                  'Site Work',
+        // Programme-specific fields
+        trade: tradeTask.trade,
+        floor_core_unit: tradeTask.floorCoreUnit,
+        week_number: tradeTask.weekNumber,
+        estimated_hours: tradeTask.estimatedHours,
+        estimated_value: 0,
+        is_programme_generated: true
+      }))
+      
+      // Create tasks in Supabase
+      const createdTasks = await taskService.createMany(supabaseTasks)
+      console.log('📋 Tasks saved to Supabase:', createdTasks.length)
+      
+      // Convert the new project to UI format and add to projects list
+      const newUIProject = await convertSupabaseProject(newSupabaseProject)
+      setProjects(prev => [newUIProject, ...prev])
+      
+      toast.success(`Created new project: ${extractedProjectName}`, {
+        description: `${tasks.length} trade tasks imported. Project saved to database!`
+      })
     } catch (error) {
-      console.error('❌ Failed to save projects to localStorage:', error)
+      console.error('❌ Failed to create project in Supabase:', error)
+      toast.error("Failed to create project", {
+        description: "Please try again or check your connection."
+      })
     }
-    
-    // Convert TradeTaskBreakdown objects to proper Task objects
-    const convertedTasks = tasks.map((tradeTask, index) => ({
-      id: `imported-${newProjectId}-${index}`,
-      title: tradeTask.description,
-      description: `${tradeTask.trade} work: ${tradeTask.description}`,
-      completed: false,
-      priority: tradeTask.priority,
-      startDate: new Date(tradeTask.startDate),
-      dueDate: new Date(tradeTask.endDate),
-      status: "todo" as const,
-      assignee: tradeTask.trade, // Use trade as assignee for Gantt grouping
-      tags: tradeTask.floorCoreUnit ? [tradeTask.floorCoreUnit] : [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      projectId: newProjectId, // Assign to the new project
-      projectName: extractedProjectName,
-      category: tradeTask.trade.includes('Electric') ? 'Electrical' : 
-                tradeTask.trade.includes('Plumb') ? 'Plumbing' :
-                tradeTask.trade.includes('Structural') ? 'Structural' :
-                'Site Work' as any,
-      // Programme-specific fields
-      trade: tradeTask.trade,
-      floorCoreUnit: tradeTask.floorCoreUnit,
-      weekNumber: tradeTask.weekNumber,
-      estimatedHours: tradeTask.estimatedHours,
-      isProgrammeGenerated: true
-    }))
-    
-    // Store converted tasks in localStorage for the tasks page and project details
-    localStorage.setItem('importedTasks', JSON.stringify(convertedTasks))
-    console.log('📋 Tasks saved to localStorage:', convertedTasks.length)
-    
-    toast.success(`Created new project: ${extractedProjectName}`, {
-      description: `${tasks.length} trade tasks imported. Project saved and ready to view!`
-    })
   }
 
   const handleAdminItemsImported = (items: ProgrammeAdminItem[], programName?: string) => {
@@ -272,11 +286,18 @@ export default function ProjectsPage() {
     })
   }
   
-  const handleDeleteProject = (projectId: string) => {
-    const updatedProjects = projects.filter(p => p.id !== projectId);
-    setProjects(updatedProjects);
-    localStorage.setItem('constructionProjects', JSON.stringify(updatedProjects));
-    toast.success("Project deleted successfully.");
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      await projectService.delete(projectId);
+      const updatedProjects = projects.filter(p => p.id !== projectId);
+      setProjects(updatedProjects);
+      toast.success("Project deleted successfully.");
+    } catch (error) {
+      console.error('❌ Failed to delete project:', error);
+      toast.error("Failed to delete project", {
+        description: "Please try again or check your connection."
+      });
+    }
   };
 
   return (

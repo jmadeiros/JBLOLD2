@@ -16,6 +16,9 @@ import Link from "next/link"
 import type { WeeklyAssessment, Tradesperson } from "../../../../types/tradesperson"
 import { toast } from "sonner"
 
+// Force static export
+export const dynamic = 'force-static'
+
 // Mock data - in real app this would come from API
 const mockTradespeople: Tradesperson[] = [
   {
@@ -59,42 +62,40 @@ const assessmentQuestions = [
 
 export default function NewAssessmentPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const [selectedTradespersonId, setSelectedTradespersonId] = useState<string>("")
-  const [scores, setScores] = useState({
-    punctuality: 5,
-    taskCompletion: 5,
-    workQuality: 5,
-    safety: 5,
-    communication: 5,
-    problemSolving: 5,
-    workplaceOrganisation: 5,
-    toolUsage: 5,
-    teamwork: 5,
-    workErrors: 5
-  });
+  const [selectedTradespersonId, setSelectedTradespersonId] = useState("")
   const [notes, setNotes] = useState("")
-  const [weekEndingDate, setWeekEndingDate] = useState(() => {
-    // Default to this Friday
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
-    const friday = new Date(today);
-    friday.setDate(today.getDate() + daysUntilFriday);
-    return friday.toISOString().split('T')[0];
-  });
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Get current date for week ending
+  const [weekEndingDate, setWeekEndingDate] = useState(() => {
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek
+    const sunday = new Date(today)
+    sunday.setDate(today.getDate() + daysUntilSunday)
+    return sunday.toISOString().split('T')[0]
+  })
 
-  // Pre-select tradesperson from URL parameter
+  // Assessment scoring (1-10 scale)
+  const [scores, setScores] = useState({
+    productivity: 7,
+    qualityOfWork: 7,
+    safetyCompliance: 7,
+    teamwork: 7,
+    reliability: 7,
+    skillLevel: 7
+  })
+
+  // Handle search params on client side only
   useEffect(() => {
-    const tradespersonParam = searchParams.get('tradesperson')
-    if (tradespersonParam) {
-      const tradesperson = mockTradespeople.find(t => t.id === tradespersonParam)
-      if (tradesperson) {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const tradespersonParam = urlParams.get('tradesperson')
+      if (tradespersonParam) {
         setSelectedTradespersonId(tradespersonParam)
       }
     }
-  }, [searchParams])
+  }, [])
 
   // Calculate overall score (average of all ratings)
   const overallScore = Object.values(scores).reduce((sum, score) => sum + score, 0) / Object.values(scores).length;

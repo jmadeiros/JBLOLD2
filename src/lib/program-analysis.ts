@@ -525,9 +525,9 @@ export class ProgramAnalysisService {
     };
   }
 
-  // Real AI analysis using server-side API
+  // Real AI analysis using server-side API route (secure for all users)
   static async analyzeWithAI(parsedProgram: ParsedProgram): Promise<ProgramAnalysisResult> {
-    console.log('🚀 Starting AI analysis via server API...')
+    console.log('🚀 Starting AI analysis via server-side API...')
 
     try {
       const programData = {
@@ -544,7 +544,7 @@ export class ProgramAnalysisService {
 
       console.log('📤 Sending program data to server for AI analysis...')
       
-      // Call our server-side API route
+      // Call our secure server-side API route
       const response = await fetch('/api/analyze-program', {
         method: 'POST',
         headers: {

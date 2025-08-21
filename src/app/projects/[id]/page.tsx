@@ -47,6 +47,7 @@ import { MonthlyCalendar } from "../../../components/monthly-calendar"
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { projectService, taskService, type Project as SupabaseProject, type Task as SupabaseTask } from "@/lib/supabase"
 
 // Project interface
 interface Project {
@@ -61,6 +62,7 @@ interface Project {
   teamMembers: { initials: string; name: string; role: string }[] // Changed from number to array of objects
   tasksCompleted: number
   totalTasks: number
+  isStarred?: boolean
   tasksByStatus: {
     todo: number
     inProgress: number
@@ -70,6 +72,7 @@ interface Project {
   trades: string[]
   siteSupervisor: string
   criticalPathTasks: number
+  budget?: string
 }
 
 // Team member interface for drag and drop
@@ -702,57 +705,114 @@ const allTasks: Task[] = [
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null)
   const [currentWeek, setCurrentWeek] = useState<Date>(startOfWeek(new Date(2025, 0, 6), { weekStartsOn: 1 }))
-  const [tasks, setTasks] = useState<Task[]>(allTasks)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [project, setProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // Load imported tasks from localStorage
+  // Load project and tasks from Supabase
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    const loadProjectData = async () => {
+      if (!resolvedParams?.id) return
+      
       try {
-        const importedTasks = localStorage.getItem('importedTasks')
-        console.log('🔍 Raw imported tasks from localStorage:', importedTasks)
+        console.log('🔄 Loading project from Supabase:', resolvedParams.id)
         
-        if (importedTasks) {
-          const parsed = JSON.parse(importedTasks)
-          console.log('📊 Parsed imported tasks:', parsed.length)
-          
-          const tasksWithDates = parsed.map((task: any) => ({
-            ...task,
-            startDate: task.startDate ? new Date(task.startDate) : undefined,
-            dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
-            createdAt: new Date(task.createdAt),
-            updatedAt: new Date(task.updatedAt)
-          }))
-          
-          console.log('🎯 Tasks with project IDs:', tasksWithDates.map((t: Task) => ({ id: t.id, projectId: t.projectId, title: t.title })))
-          
-          // Combine imported tasks with hardcoded tasks (different project IDs)
-          setTasks(prev => {
-            const hardcodedTasks = allTasks.filter(task => task.projectId === "1" || task.projectId === "2")
-            const combinedTasks = [...hardcodedTasks, ...tasksWithDates]
-            console.log('🔄 Combined tasks:', {
-              hardcoded: hardcodedTasks.length,
-              imported: tasksWithDates.length,
-              total: combinedTasks.length,
-              projectBreakdown: combinedTasks.reduce((acc, task) => {
-                acc[task.projectId || 'no-id'] = (acc[task.projectId || 'no-id'] || 0) + 1
-                return acc
-              }, {} as Record<string, number>)
-            })
-            return combinedTasks
-          })
-          
-          console.log('✅ Set tasks for project page:', tasksWithDates.length)
-        } else {
-          // If no imported tasks, use the hardcoded tasks
-          console.log('📝 Using hardcoded tasks only')
-          setTasks(allTasks)
+        // Load project details
+        const projectData = await projectService.getById(resolvedParams.id)
+        if (!projectData) {
+          console.error('❌ Project not found:', resolvedParams.id)
+          setProject(null)
+          setLoading(false)
+          return
         }
+        
+        console.log('✅ Project loaded:', projectData)
+        
+        // Convert Supabase project to UI project format
+        const uiProject: Project = {
+          id: projectData.id,
+          name: projectData.name,
+          location: projectData.location || 'TBD',
+          description: projectData.description || '',
+          status: projectData.status as any || 'Pre-construction',
+          priority: 'medium',
+          progress: projectData.progress,
+          dueDate: projectData.end_date ? new Date(projectData.end_date).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          }) : 'TBD',
+          teamMembers: [
+            { initials: "PM", name: "Project Manager", role: "Manager" },
+            { initials: "SE", name: "Site Engineer", role: "Engineer" },
+          ],
+          tasksCompleted: 0, // Will be calculated from tasks
+          totalTasks: 0, // Will be calculated from tasks
+          isStarred: false,
+          tasksByStatus: { todo: 0, inProgress: 0, review: 0, done: 0 }, // Will be calculated
+          trades: [], // Will be calculated from tasks
+          siteSupervisor: 'TBD',
+          criticalPathTasks: 0, // Will be calculated from tasks
+          budget: projectData.budget ? `$${projectData.budget.toLocaleString()}` : '$0'
+        }
+        
+        setProject(uiProject)
+        
+        // Load tasks for this project
+        console.log('🔄 Loading tasks for project:', resolvedParams.id)
+        const projectTasks = await taskService.getByProject(resolvedParams.id)
+        console.log('📊 Loaded tasks from database:', projectTasks.length)
+        
+        // Convert Supabase tasks to UI task format
+        const uiTasks: Task[] = projectTasks.map((dbTask) => ({
+          id: dbTask.id,
+          title: dbTask.title,
+          description: dbTask.description || '',
+          completed: dbTask.completed,
+          priority: dbTask.priority as any,
+          startDate: dbTask.start_date ? new Date(dbTask.start_date) : undefined,
+          dueDate: dbTask.due_date ? new Date(dbTask.due_date) : undefined,
+          status: dbTask.status as any,
+          assignee: dbTask.assignee || '',
+          tags: dbTask.tags || [],
+          createdAt: new Date(dbTask.created_at),
+          updatedAt: new Date(dbTask.updated_at),
+          projectId: dbTask.project_id,
+          projectName: projectData.name,
+          category: dbTask.category as any,
+          trade: dbTask.trade || '',
+          floorCoreUnit: dbTask.floor_core_unit || '',
+          weekNumber: dbTask.week_number || undefined,
+          estimatedHours: dbTask.estimated_hours || undefined,
+          isProgrammeGenerated: dbTask.is_programme_generated || false
+        }))
+        
+        // Update project stats based on tasks
+        uiProject.totalTasks = uiTasks.length
+        uiProject.tasksCompleted = uiTasks.filter(t => t.completed).length
+        uiProject.tasksByStatus = {
+          todo: uiTasks.filter(t => t.status === 'todo').length,
+          inProgress: uiTasks.filter(t => t.status === 'in-progress').length,
+          review: uiTasks.filter(t => t.status === 'review').length,
+          done: uiTasks.filter(t => t.completed).length
+        }
+        uiProject.trades = [...new Set(uiTasks.map(t => (t as any).trade).filter(Boolean))]
+        uiProject.criticalPathTasks = uiTasks.filter(t => t.priority === 'high').length
+        
+        setTasks(uiTasks)
+        setProject(uiProject)
+        console.log('✅ Project and tasks loaded successfully')
+        
       } catch (error) {
-        console.error('❌ Failed to load imported tasks:', error)
-        setTasks(allTasks) // Fallback to hardcoded tasks
+        console.error('❌ Failed to load project data:', error)
+        setProject(null)
+      } finally {
+        setLoading(false)
       }
     }
-  }, [resolvedParams]) // Re-run when project ID changes
+    
+    loadProjectData()
+  }, [resolvedParams])
 
   // Also listen for storage changes (when new projects are imported)
   useEffect(() => {
@@ -809,8 +869,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (typeof window !== 'undefined') {
       try {
         const savedProjects = localStorage.getItem('constructionProjects')
+        console.log('🔍 Loading projects from localStorage:', savedProjects ? 'found' : 'not found')
         if (savedProjects) {
           const parsed = JSON.parse(savedProjects)
+          console.log('📊 Parsed saved projects:', parsed.map((p: any) => ({ id: p.id, name: p.name })))
           // Combine saved projects with hardcoded ones, avoiding duplicates
           setAllProjectsCombined(prev => [
             ...parsed, 
@@ -823,8 +885,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     }
   }, [])
 
-  // Find project in combined list (localStorage + hardcoded)
-  const project = resolvedParams ? allProjectsCombined.find(p => p.id === resolvedParams.id) : null
+  // Project will be loaded from Supabase in useEffect
+  
+  // Debug logging for project loading
+  useEffect(() => {
+    if (resolvedParams && project) {
+      console.log('🔍 Project Loaded:', {
+        projectId: project.id,
+        projectName: project.name,
+        totalTasks: project.totalTasks
+      })
+    }
+  }, [resolvedParams, project])
 
   // Generate week days (Monday to Friday only)
   const weekDays = useMemo(() => {
@@ -1095,13 +1167,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     )
   }
 
+  if (loading) {
+    return (
+      <SidebarInset>
+        <div className="flex-1 p-6 text-center">
+          <h1 className="text-2xl font-bold">Loading project...</h1>
+          <p className="text-gray-600 mt-2">Please wait while we load your project data.</p>
+        </div>
+      </SidebarInset>
+    )
+  }
+
   if (!project) {
     return (
       <SidebarInset>
         <div className="flex-1 p-6 text-center">
           <h1 className="text-2xl font-bold">Project not found</h1>
+          <p className="text-gray-600 mt-2">The project you're looking for doesn't exist or may have been deleted.</p>
           <Link href="/projects">
-            <Button variant="link">Go back to projects</Button>
+            <Button variant="link" className="mt-4">Go back to projects</Button>
           </Link>
         </div>
       </SidebarInset>

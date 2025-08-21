@@ -15,9 +15,9 @@ import { Search, Mail, MapPin, UserPlus, Award, TrendingUp, DollarSign, Calculat
 import type { Task } from "../../../types/task"
 import type { Tradesperson, WeeklyAssessment, TimesheetEntry, TradesPersonPerformance } from "../../../types/tradesperson"
 import { formatCurrency, formatPercentage } from "@/lib/cvc-utils"
-import { TeamLeaderboard } from "@/components/team/team-leaderboard"
-import { WeeklyAssessmentForm } from "@/components/team/weekly-assessment-form"
-import { TimesheetManager } from "@/components/team/timesheet-manager"
+import { TeamLeaderboard } from "@/components/workers/team-leaderboard"
+import { WeeklyAssessmentForm } from "@/components/workers/weekly-assessment-form"
+import { TimesheetManager } from "@/components/workers/timesheet-manager"
 import { toast } from "sonner"
 import Link from "next/link"
 
