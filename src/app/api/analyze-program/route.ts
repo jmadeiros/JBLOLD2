@@ -250,21 +250,30 @@ export async function POST(request: NextRequest) {
     console.log('📊 Program data size:', JSON.stringify(programData).length, 'characters')
     console.log('📋 Program data preview:', JSON.stringify(programData).substring(0, 500) + '...')
     
+    // Use the full dataset but optimize for Vercel timeouts
+    const programDataStr = JSON.stringify(programData)
+    console.log('📊 Processing full dataset:', programDataStr.length, 'characters')
+    
     // Call Gemini API with fallback
     let aiResponse: string
     try {
-      aiResponse = await callGeminiAPI(AI_ANALYSIS_PROMPT, JSON.stringify(programData))
+      aiResponse = await callGeminiAPI(AI_ANALYSIS_PROMPT, programDataStr)
     } catch (geminiError) {
       console.error('❌ Gemini 2.5-flash failed, trying fallback model...', geminiError)
       
-      // Try with 1.5-flash as fallback
+      // Try with 1.5-flash as fallback with higher timeout
       const fallbackConfig = { ...AI_CONFIG, model: 'gemini-1.5-flash' }
       const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${fallbackConfig.model}:generateContent?key=${fallbackConfig.apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: AI_ANALYSIS_PROMPT + '\n\nProgram Data:\n' + JSON.stringify(programData) }] }],
-          generationConfig: { temperature: 0.3, topK: 40, topP: 0.95, maxOutputTokens: 8000 }
+          contents: [{ parts: [{ text: AI_ANALYSIS_PROMPT + '\n\nProgram Data:\n' + programDataStr }] }],
+          generationConfig: { 
+            temperature: 0.3, 
+            topK: 40, 
+            topP: 0.95, 
+            maxOutputTokens: 65536 // Increase token limit
+          }
         })
       })
       

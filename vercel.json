@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "src/app/api/analyze-program/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/parse-pdf/route.ts": {
+      "maxDuration": 60
+    }
+  }
+} 
