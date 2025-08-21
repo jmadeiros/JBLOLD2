@@ -60,6 +60,12 @@ These should be categorised as "Programme Admin" and kept separate from trade ta
 
 Return the analysis as a JSON object with the following structure:
 {
+  "summary": {
+    "totalTradeTasks": number,
+    "totalAdminItems": number,
+    "projectDuration": "X weeks",
+    "uniqueTrades": string[]
+  },
   "tradeTasks": [
     {
       "trade": "string",
@@ -344,13 +350,27 @@ export async function POST(request: NextRequest) {
     try {
       analysisResult = JSON.parse(jsonStr)
       
+      // Gracefully handle missing keys to prevent crashes before validation
+      if (!analysisResult.tradeTasks) {
+        console.log("⚠️ tradeTasks key missing from AI response, creating empty array.")
+        analysisResult.tradeTasks = []
+      }
+      if (!analysisResult.adminItems) {
+        console.log("⚠️ adminItems key missing from AI response, creating empty array.")
+        analysisResult.adminItems = []
+      }
+      
       // Validate the structure
-      if (!analysisResult.tradeTasks || !Array.isArray(analysisResult.tradeTasks)) {
+      if (!Array.isArray(analysisResult.tradeTasks)) {
         throw new Error('Missing or invalid tradeTasks array')
       }
       
-      if (!analysisResult.adminItems || !Array.isArray(analysisResult.adminItems)) {
+      if (!Array.isArray(analysisResult.adminItems)) {
         throw new Error('Missing or invalid adminItems array')
+      }
+      
+      if (!analysisResult.summary || typeof analysisResult.summary !== 'object') {
+        throw new Error('Missing or invalid summary object')
       }
       
       console.log('🔍 Raw AI analysis result structure:', {
