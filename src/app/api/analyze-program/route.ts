@@ -353,10 +353,6 @@ export async function POST(request: NextRequest) {
         throw new Error('Missing or invalid adminItems array')
       }
       
-      if (!analysisResult.summary || typeof analysisResult.summary !== 'object') {
-        throw new Error('Missing or invalid summary object')
-      }
-      
       console.log('🔍 Raw AI analysis result structure:', {
         hasTradeTasksArray: Array.isArray(analysisResult.tradeTasks),
         tradeTasksCount: analysisResult.tradeTasks?.length || 0,
