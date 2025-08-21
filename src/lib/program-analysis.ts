@@ -5,6 +5,7 @@ import type {
   ProgramUploadStatus 
 } from "../../types/task"
 
+
 export interface ProgramRow {
   lineNumber: number
   name: string
@@ -115,337 +116,227 @@ Return the analysis as a JSON object with the following structure:
 // AI analysis now handled by server-side API route
 
 export class ProgramAnalysisService {
-  // File parsing methods
+  // File parsing methods - now sends raw file to server for processing
   static async parseExcelFile(file: File): Promise<ParsedProgram> {
     console.log('📄 Parsing uploaded file:', file.name)
     
     const projectName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
     
-    // For now, we'll create a basic structure that the AI can analyze
-    // In a real implementation, this would use a library like xlsx to actually parse the file
-    // The AI analysis will handle the intelligent disaggregation
-    console.log('📋 Creating program structure for AI analysis...')
+    try {
+      // Convert file to base64 for sending to server
+      const arrayBuffer = await file.arrayBuffer()
+      const uint8Array = new Uint8Array(arrayBuffer)
+      const base64Data = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)))
+      
+      console.log('📋 Sending file to server for PDF text extraction...')
+      
+      // Send to server for PDF parsing
+      const response = await fetch('/api/parse-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          fileData: base64Data,
+          fileName: file.name 
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to parse PDF on server')
+      }
+      
+      console.log('✅ PDF text extracted on server:', {
+        textLength: result.text.length,
+        preview: result.text.substring(0, 200)
+      })
+      
+      // Parse the text into program rows
+      const rows = this.parseProgramText(result.text)
+      
+      // Extract timeline information
+      const dates = this.extractDatesFromText(result.text)
+      const programStart = dates.start || new Date("2020-07-20")
+      const programEnd = dates.end || new Date("2022-05-03")
+      
+      return {
+        projectName,
+        rows,
+        timeline: {
+          programStart,
+          programEnd,
+          totalDuration: Math.ceil((programEnd.getTime() - programStart.getTime()) / (1000 * 60 * 60 * 24 * 7)) // weeks
+        },
+        metadata: {
+          fileName: file.name,
+          parseDate: new Date(),
+          totalLines: rows.length
+        }
+      };
+    } catch (error) {
+      console.error('❌ Failed to parse PDF:', error)
+      
+      // Fallback to basic structure if PDF parsing fails
+      console.log('🔄 Falling back to basic program structure...')
+      return this.createFallbackProgram(projectName, file.name)
+    }
+  }
+
+  private static parseProgramText(text: string): ProgramRow[] {
+    const rows: ProgramRow[] = []
+    const lines = text.split('\n').filter(line => line.trim().length > 0)
     
+    let lineNumber = 1
+    
+    for (const line of lines) {
+      // Look for lines that seem like program activities
+      // This is a basic parser - could be enhanced based on your specific PDF format
+      const trimmedLine = line.trim()
+      
+      // Skip header lines and page numbers
+      if (this.isHeaderOrPageNumber(trimmedLine)) {
+        continue
+      }
+      
+      // Try to extract activity information
+      const activityData = this.extractActivityFromLine(trimmedLine)
+      
+      if (activityData) {
+        rows.push({
+          lineNumber: lineNumber++,
+          name: activityData.name,
+          duration: activityData.duration || "",
+          startDate: activityData.startDate || "",
+          finishDate: activityData.finishDate || "",
+          workType: activityData.workType,
+          notes: activityData.notes
+        })
+      }
+    }
+    
+    console.log(`📊 Extracted ${rows.length} program activities from PDF`)
+    return rows
+  }
+
+  private static isHeaderOrPageNumber(line: string): boolean {
+    // Skip common header patterns and page numbers
+    const skipPatterns = [
+      /^page\s+\d+/i,
+      /^project:/i,
+      /^programme/i,
+      /^activity\s+id/i,
+      /^task\s+name/i,
+      /^start\s+date/i,
+      /^finish\s+date/i,
+      /^\d+\s*$/,
+      /^-+$/,
+      /^=+$/
+    ]
+    
+    return skipPatterns.some(pattern => pattern.test(line))
+  }
+
+  private static extractActivityFromLine(line: string): {
+    name: string
+    duration?: string
+    startDate?: string
+    finishDate?: string
+    workType?: string
+    notes?: string
+  } | null {
+    // This is a basic extraction - you may need to adjust based on your PDF format
+    // Look for patterns like: "Activity Name    Duration    Start Date    End Date"
+    
+    // Remove extra whitespace and split by multiple spaces/tabs
+    const parts = line.split(/\s{2,}|\t+/).filter(part => part.trim().length > 0)
+    
+    if (parts.length < 1) return null
+    
+    const name = parts[0].trim()
+    
+    // Skip if it looks like a date or number only
+    if (/^\d+[\/\-]\d+[\/\-]\d+$/.test(name) || /^\d+$/.test(name)) {
+      return null
+    }
+    
+    // Extract duration (look for patterns like "5w", "3w 2d", "14 weeks")
+    const duration = parts.find(part => 
+      /\d+\s*w|week|day|month/i.test(part)
+    ) || ""
+    
+    // Extract dates (look for date patterns)
+    const datePattern = /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/
+    const dates = parts.filter(part => datePattern.test(part))
+    
+    // Determine work type based on keywords
+    const workType = this.determineWorkType(name)
+    
+    return {
+      name,
+      duration,
+      startDate: dates[0] || "",
+      finishDate: dates[1] || dates[0] || "",
+      workType,
+      notes: parts.length > 3 ? parts.slice(3).join(' ') : undefined
+    }
+  }
+
+  private static determineWorkType(activityName: string): string {
+    const name = activityName.toLowerCase()
+    
+    if (name.includes('demolition') || name.includes('asbestos')) return 'demolition'
+    if (name.includes('piling') || name.includes('foundation')) return 'structural'
+    if (name.includes('concrete') || name.includes('slab') || name.includes('frame')) return 'structural'
+    if (name.includes('electrical')) return 'electrical'
+    if (name.includes('plumbing') || name.includes('mechanical')) return 'plumbing'
+    if (name.includes('scaffold')) return 'scaffolding'
+    if (name.includes('roofing') || name.includes('roof')) return 'roofing'
+    if (name.includes('window') || name.includes('glazing')) return 'windows'
+    if (name.includes('brick') || name.includes('block') || name.includes('masonry')) return 'masonry'
+    if (name.includes('fit out') || name.includes('fitout')) return 'fitout'
+    if (name.includes('external') || name.includes('landscap')) return 'site'
+    if (name.includes('client') || name.includes('approval') || name.includes('design')) return 'admin'
+    if (name.includes('survey') || name.includes('procurement')) return 'admin'
+    if (name.includes('handover') || name.includes('milestone')) return 'milestone'
+    
+    return 'construction'
+  }
+
+  private static extractDatesFromText(text: string): { start?: Date, end?: Date } {
+    const datePattern = /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/g
+    const dates = text.match(datePattern) || []
+    
+    const parsedDates = dates
+      .map(dateStr => this.parseDate(dateStr))
+      .filter(date => date !== null)
+      .sort((a, b) => a!.getTime() - b!.getTime())
+    
+    return {
+      start: parsedDates[0] || undefined,
+      end: parsedDates[parsedDates.length - 1] || undefined
+    }
+  }
+
+  private static createFallbackProgram(projectName: string, fileName: string): ParsedProgram {
+    console.log('🔄 Creating fallback program structure for AI analysis...')
+    
+    // Return a minimal structure that tells the AI to work with whatever data it receives
     const basicRows: ProgramRow[] = [
-      // ADMIN ITEMS (Go to Calendar)
       {
         lineNumber: 1,
-        name: "Client Activities",
-        duration: "",
-        startDate: "20/04/20",
-        finishDate: "20/04/20",
-        workType: "admin"
-      },
-      {
-        lineNumber: 2,
-        name: "Contract Signing",
-        duration: "29w",
-        startDate: "10/12/19",
-        finishDate: "20/07/20",
-        workType: "admin"
-      },
-      {
-        lineNumber: 3,
-        name: "Contract Start Date",
-        duration: "",
-        startDate: "20/07/2020",
-        finishDate: "20/07/2020",
-        workType: "milestone"
-      },
-      {
-        lineNumber: 5,
-        name: "Surveys",
-        duration: "17w 5d",
-        startDate: "20/07/20",
-        finishDate: "23/11/20",
-        workType: "survey"
-      },
-      {
-        lineNumber: 6,
-        name: "Consultant appointments",
-        duration: "4w",
-        startDate: "20/07/20",
-        finishDate: "14/08/20",
-        workType: "admin"
-      },
-      {
-        lineNumber: 7,
-        name: "Design",
-        duration: "40w",
-        startDate: "03/08/20",
-        finishDate: "27/05/21",
-        workType: "design"
-      },
-      {
-        lineNumber: 12,
-        name: "Procurement & Sub-Contractor Mobilisation",
-        duration: "65w",
-        startDate: "20/07/20",
-        finishDate: "08/11/21",
-        workType: "procurement"
-      },
-      {
-        lineNumber: 13,
-        name: "Site Possession Date",
-        duration: "",
-        startDate: "28/09/2020",
-        finishDate: "28/09/2020",
-        workType: "milestone"
-      },
-
-      // CONSTRUCTION TRADE TASKS (Go to Gantt + Tasks)
-      {
-        lineNumber: 18,
-        name: "Enabling & Demolition Works",
-        duration: "14w",
-        startDate: "28/09/20",
-        finishDate: "15/01/21",
-        workType: "demolition"
-      },
-      {
-        lineNumber: 19,
-        name: "Initial Site Set Up & Erection of Hoarding",
-        duration: "3w",
-        startDate: "28/09/20",
-        finishDate: "16/10/20",
-        workType: "site"
-      },
-      {
-        lineNumber: 20,
-        name: "Asbestos Removal (Provisional) & Soft strip",
-        duration: "4w",
-        startDate: "05/10/20",
-        finishDate: "30/10/20",
-        workType: "demolition"
-      },
-      {
-        lineNumber: 21,
-        name: "Demolition",
-        duration: "6w",
-        startDate: "02/11/20",
-        finishDate: "11/12/20",
-        workType: "demolition"
-      },
-      {
-        lineNumber: 27,
-        name: "Piling",
-        duration: "3w 1d",
-        startDate: "18/01/2021",
-        finishDate: "08/02/2021",
-        workType: "structural"
-      },
-      {
-        lineNumber: 33,
-        name: "Sub-structures",
-        duration: "6w 3d",
-        startDate: "09/02/21",
-        finishDate: "25/03/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 34,
-        name: "Excavate & trim piles",
-        duration: "2w",
-        startDate: "09/02/21",
-        finishDate: "22/02/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 35,
-        name: "Form crane base",
-        duration: "1w",
-        startDate: "23/02/21",
-        finishDate: "01/03/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 36,
-        name: "FRC foundations, pilecaps & beams",
-        duration: "3d",
-        startDate: "16/02/21",
-        finishDate: "18/02/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 41,
-        name: "RC Frame",
-        duration: "16w 1d",
-        startDate: "26/03/21",
-        finishDate: "22/07/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 42,
-        name: "G - 1st Floor Slab",
-        duration: "2w",
-        startDate: "26/03/21",
-        finishDate: "12/04/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 43,
-        name: "1st - 2nd Floor Slab",
-        duration: "2w",
-        startDate: "14/04/21",
-        finishDate: "27/04/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 44,
-        name: "2nd - 3rd Floor Slab",
-        duration: "2w",
-        startDate: "28/04/21",
-        finishDate: "12/05/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 45,
-        name: "3rd - 4th Floor Slab",
-        duration: "2w",
-        startDate: "13/05/21",
-        finishDate: "26/05/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 46,
-        name: "4th - 5th Floor Slab",
-        duration: "2w",
-        startDate: "27/05/21",
-        finishDate: "10/06/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 47,
-        name: "5th - Roof Slab",
-        duration: "2w",
-        startDate: "11/06/21",
-        finishDate: "24/06/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 54,
-        name: "Erect Scaffolding",
-        duration: "14w",
-        startDate: "09/07/21",
-        finishDate: "15/10/21",
-        workType: "scaffolding"
-      },
-      {
-        lineNumber: 61,
-        name: "SFS inner skin",
-        duration: "14w",
-        startDate: "28/06/21",
-        finishDate: "04/10/21",
-        workType: "structural"
-      },
-      {
-        lineNumber: 75,
-        name: "Install Windows",
-        duration: "13w 4d",
-        startDate: "23/08/21",
-        finishDate: "26/11/21",
-        workType: "windows"
-      },
-      {
-        lineNumber: 85,
-        name: "Roofing",
-        duration: "24w 1d",
-        startDate: "06/08/21",
-        finishDate: "07/02/22",
-        workType: "roofing"
-      },
-      {
-        lineNumber: 97,
-        name: "Brick & blockwork",
-        duration: "14w 2d",
-        startDate: "20/09/21",
-        finishDate: "11/01/22",
-        workType: "masonry"
-      },
-      {
-        lineNumber: 118,
-        name: "Fit out (38No. Flats)",
-        duration: "34w",
-        startDate: "30/07/21",
-        finishDate: "08/04/22",
-        workType: "fitout"
-      },
-      {
-        lineNumber: 123,
-        name: "Fit Out 5No.Ground Floor Flats",
-        duration: "20w 4d",
-        startDate: "23/08/21",
-        finishDate: "28/01/22",
-        workType: "fitout"
-      },
-      {
-        lineNumber: 130,
-        name: "Fit Out 7No. First Floor Flats",
-        duration: "21w 4d",
-        startDate: "31/08/21",
-        finishDate: "11/02/22",
-        workType: "fitout"
-      },
-      {
-        lineNumber: 139,
-        name: "Fit Out 7No.Second Floor Flats",
-        duration: "22w",
-        startDate: "13/09/21",
-        finishDate: "25/02/22",
-        workType: "fitout"
-      },
-      {
-        lineNumber: 148,
-        name: "Fit Out 7No.Third Floor Flats",
-        duration: "22w",
-        startDate: "27/09/21",
-        finishDate: "11/03/22",
-        workType: "fitout"
-      },
-      {
-        lineNumber: 157,
-        name: "Fit Out 7No.Fourth Floor Flats",
-        duration: "21w",
-        startDate: "11/10/21",
-        finishDate: "18/03/22",
-        workType: "fitout"
-      },
-      {
-        lineNumber: 166,
-        name: "Fit Out 5No.Fifth Floor Flats",
-        duration: "21w",
-        startDate: "25/10/21",
-        finishDate: "01/04/22",
-        workType: "fitout"
-      },
-      {
-        lineNumber: 173,
-        name: "Communal Area",
-        duration: "21w",
-        startDate: "01/11/21",
-        finishDate: "08/04/22",
-        workType: "fitout"
-      },
-      {
-        lineNumber: 185,
-        name: "External works",
-        duration: "5w 2d",
-        startDate: "22/03/22",
-        finishDate: "03/05/22",
-        workType: "site"
-      },
-      {
-        lineNumber: 190,
-        name: "Hand Over 38No.Flats",
-        duration: "4d",
-        startDate: "26/04/22",
-        finishDate: "03/05/22",
-        workType: "handover"
+        name: "Construction Programme Analysis Required",
+        duration: "TBD",
+        startDate: "TBD",
+        finishDate: "TBD",
+        workType: "analysis",
+        notes: `Please analyze the uploaded file: ${fileName}`
       }
-    ];
+    ]
 
-    const programStart = new Date("2020-07-20");
-    const programEnd = new Date("2022-05-03");
+    const programStart = new Date("2020-07-20")
+    const programEnd = new Date("2022-05-03")
     
     return {
       projectName,
@@ -453,14 +344,14 @@ export class ProgramAnalysisService {
       timeline: {
         programStart,
         programEnd,
-        totalDuration: Math.ceil((programEnd.getTime() - programStart.getTime()) / (1000 * 60 * 60 * 24 * 7)) // weeks
+        totalDuration: Math.ceil((programEnd.getTime() - programStart.getTime()) / (1000 * 60 * 60 * 24 * 7))
       },
       metadata: {
-        fileName: file.name,
+        fileName,
         parseDate: new Date(),
         totalLines: basicRows.length
       }
-    };
+    }
   }
 
   static async analyzeProgram(parsedProgram: ParsedProgram): Promise<ProgramAnalysisResult> {
@@ -530,6 +421,7 @@ export class ProgramAnalysisService {
     console.log('🚀 Starting AI analysis via server-side API...')
 
     try {
+      // Send the complete program data including raw text for better AI analysis
       const programData = {
         projectName: parsedProgram.projectName,
         timeline: parsedProgram.timeline,
@@ -538,11 +430,13 @@ export class ProgramAnalysisService {
           duration: row.duration,
           startDate: row.startDate,
           finishDate: row.finishDate,
-          workType: row.workType
-        }))
+          workType: row.workType,
+          notes: row.notes
+        })),
+        metadata: parsedProgram.metadata
       }
 
-      console.log('📤 Sending program data to server for AI analysis...')
+      console.log('📤 Sending complete program data to server for AI analysis...')
       
       // Call our secure server-side API route
       const response = await fetch('/api/analyze-program', {
