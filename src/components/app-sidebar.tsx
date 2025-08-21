@@ -64,12 +64,12 @@ const data = {
     },
     {
       title: "List View",
-      url: "/tasks/list",
+      url: "/tasks",
       icon: List,
     },
     {
       title: "Calendar View",
-      url: "/tasks/calendar",
+      url: "/tasks",
       icon: Calendar,
     },
   ],
