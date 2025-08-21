@@ -69,7 +69,7 @@ const data = {
     },
     {
       title: "Calendar View",
-      url: "/tasks",
+      url: "/calendar",
       icon: Calendar,
     },
   ],
