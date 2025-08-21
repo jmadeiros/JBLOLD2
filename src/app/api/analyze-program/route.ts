@@ -23,49 +23,53 @@ Plumbing: break down by first fix pipework, soil stacks, second fix, testing, pl
 
 Fit-out works: separate into joinery, painting, flooring, kitchens, bathrooms — per flat or per core.
 
-📌 Part 2: Task-Level Disaggregation
+SFS, cladding, windows: divide into floors or elevations, if applicable.
 
-For each trade task, provide:
-- A specific description of the work
-- Estimated hours for completion
-- Dependencies (what must be completed before this task can start)
-- Priority level (high/medium/low)
-- Floor/unit reference where applicable
+Scaffold and crane operations: include sequences and dependencies.
 
-📌 Part 3: Admin vs Trade Separation
+📌 Part 2: Task Structuring for Assignment
 
-Separate programme items into two categories:
+For each task identified, present it in a structured format that includes:
 
-1. TRADE TASKS: Physical construction work that requires specific trades/skills
-   - These will go into the Gantt timeline and task management system
-   - Include trades like: electrician, plumber, bricklayer, carpenter, etc.
+Trade (e.g., Electrician)
+Description of task (e.g. "2nd Fix Electrics – Unit 15, 2nd Floor, Private")
+Start date
+End date (or duration)
+Floor / Core / Unit reference (as applicable)
+Dependencies (e.g. after window install, post-plastering)
+Priority (High, Medium, Low if deducible from sequence)
+Week number (based on the programme's timeline)
 
-2. ADMIN ITEMS: Non-trade activities, approvals, milestones, meetings
-   - These will go into the calendar as events
-   - Include items like: client approvals, surveys, design, procurement, handovers, etc.
+🧠 Think practically like a Site Manager or PM handing out daily or weekly work packages to trade teams. Assume each task should be specific enough that:
 
-CRITICAL: You must return ALL trade tasks in the tradeTasks array, not just a sample. If you identify 117 trade tasks in your summary, then include all 117 tasks in the tradeTasks array. Do not truncate or limit the output.
+A foreman can assign it to a team member
+Progress can be tracked and ticked off
+Delays or blockers can be clearly identified
 
-ENSURE COMPLETE JSON: Make sure your JSON response is valid and complete. End all arrays with ] and objects with }. If you need to break down tasks, prioritize the most important ones first.
+📌 Part 3: Programme Admin Items
 
-Return the analysis in this JSON format:
+Identify and tag non-trade-specific activities separately, such as:
 
+Client approvals
+Surveys
+Design development
+Procurement deadlines
+Handover and PC milestones
+
+These should be categorised as "Programme Admin" and kept separate from trade tasks. Do not include these in trade task tracking.
+
+Return the analysis as a JSON object with the following structure:
 {
-  "summary": {
-    "totalTradeTasks": number,
-    "totalAdminItems": number,
-    "projectDuration": "X weeks",
-    "uniqueTrades": string[]
-  },
   "tradeTasks": [
     {
-      "trade": "string (e.g., Electrician, Plumber, etc.)",
-      "description": "string",
+      "trade": "string",
+      "description": "string", 
       "startDate": "YYYY-MM-DD",
-      "endDate": "YYYY-MM-DD", 
-      "floorCoreUnit": "string (e.g., Ground Floor, Unit 1-5, etc.)",
-      "priority": "high|medium|low",
+      "endDate": "YYYY-MM-DD",
+      "floorCoreUnit": "string",
       "dependencies": ["string"],
+      "priority": "high|medium|low",
+      "weekNumber": number,
       "estimatedHours": number,
       "estimatedValue": number
     }
@@ -272,7 +276,7 @@ export async function POST(request: NextRequest) {
             temperature: 0.3, 
             topK: 40, 
             topP: 0.95, 
-            maxOutputTokens: 65536 // Increase token limit
+            maxOutputTokens: 8000
           }
         })
       })
