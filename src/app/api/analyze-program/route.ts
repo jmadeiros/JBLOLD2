@@ -160,6 +160,7 @@ function extractPartialData(jsonStr: string): any {
 }
 
 async function callGeminiAPI(prompt: string, programData: string): Promise<string> {
+  console.log('🌐 Making Gemini API request...')
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${AI_CONFIG.model}:generateContent?key=${AI_CONFIG.apiKey}`, {
     method: 'POST',
     headers: {
@@ -180,6 +181,8 @@ async function callGeminiAPI(prompt: string, programData: string): Promise<strin
     })
   })
 
+  console.log('📡 Gemini API response received, status:', response.status)
+  
   if (!response.ok) {
     const errorText = await response.text()
     console.error('❌ Gemini API Error Response:', errorText)
@@ -261,13 +264,16 @@ export async function POST(request: NextRequest) {
     // Call Gemini API with fallback
     let aiResponse: string
     try {
+      console.log('🔄 Calling primary Gemini API (2.5-flash)...')
       aiResponse = await callGeminiAPI(AI_ANALYSIS_PROMPT, programDataStr)
+      console.log('✅ Primary Gemini API call succeeded')
     } catch (geminiError) {
       console.error('❌ Gemini 2.5-flash failed, trying fallback model...', geminiError)
       
-      // Try with 1.5-flash as fallback with higher timeout
-      const fallbackConfig = { ...AI_CONFIG, model: 'gemini-1.5-flash' }
-      const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${fallbackConfig.model}:generateContent?key=${fallbackConfig.apiKey}`, {
+              // Try with 1.5-flash as fallback with higher timeout
+        console.log('🔄 Trying fallback Gemini API (1.5-flash)...')
+        const fallbackConfig = { ...AI_CONFIG, model: 'gemini-1.5-flash' }
+        const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${fallbackConfig.model}:generateContent?key=${fallbackConfig.apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
